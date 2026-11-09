@@ -32,7 +32,7 @@
       background:
         linear-gradient(rgba(15, 40, 90, 0.65),
         rgba(15, 40, 90, 0.65)),
-        url("company.jpg");
+        url("assets/images/company.jpg");
 
       background-size: cover;
       background-position: center;
@@ -70,6 +70,7 @@
     .auth-form {
       width: 100%;
       max-width: 420px;
+      padding: 20px 0;
     }
 
     /* Logo */
@@ -230,7 +231,6 @@
 <body>
   <div class="auth-container">
     <section class="auth-company">
-      <img src="assets/images/company.jpg" alt="foto company">
       <h1>TalentTrack</h1>
       <p>
         Temukan peluang karier terbaik dan bangun masa depan
