@@ -9,7 +9,7 @@ $password_hash = password_hash($password_real, PASSWORD_DEFAULT);
 $stmt = $connection->prepare("INSERT INTO admin (username, password) VALUES (?, ?)");
 $stmt->bind_param("ss", $username, $password_hash);
 if ($stmt->execute()) {
-header("Location: index.php");
+header("Location: login.php");
 } else {
 echo "Pendaftaran gagal: " . $connection->error;
 }
