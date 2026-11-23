@@ -1,3 +1,67 @@
+<?php 
+session_start(); 
+include '../backend/connection.php'; 
+
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    if ($email === '' || $password === '') {
+        $error = "Email dan password wajib diisi.";
+
+    } else {
+        $query = "SELECT id, name, email, password, role
+                  FROM users
+                  WHERE email = ?
+                  LIMIT 1";
+
+        $stmt = $conn->prepare($query);
+
+        if ($stmt) {
+
+            $stmt->bind_param("s", $email);
+            $stmt->execute();
+
+            $stmt->bind_result(
+                $userId,
+                $userName,
+                $userEmail,
+                $hashedPassword,
+                $userRole
+            );
+
+            $found = $stmt->fetch();
+            $stmt->close();
+
+            if ($found && password_verify($password, $hashedPassword)) {
+                session_regenerate_id(true);
+                $_SESSION['user_id'] = $userId;
+                $_SESSION['user_name'] = $userName;
+                $_SESSION['user_email'] = $userEmail;
+                $_SESSION['user_role'] = $userRole;
+
+                if ($userRole === 'admin') {
+                    header("Location: admin/dashboard.php");
+                    exit;
+                } elseif ($userRole === 'pelamar') {
+                    header("Location: user/dashboard.php");
+                    exit;
+                } else {
+                    $error = "Role akun tidak valid.";
+                }
+            } else {
+                $error = "Email atau password salah.";
+            }
+        } else {
+            $error = "Terjadi kesalahan pada sistem. Silakan coba kembali.";
+        }
+    }
+} 
+?>
+
 <!DOCTYPE html>
 <html lang="">
 
@@ -251,6 +315,18 @@
           Silakan masuk menggunakan akun Anda untuk melanjutkan.
         </p>
 
+        <?php if (!empty($error)): ?>
+          <p style="
+            color: #dc2626;
+            background: #fee2e2;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            ">
+        <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?>
+    </p>
+<?php endif; ?>
         <form action="" method="post">
 
           <label for="email">Email Address</label>
