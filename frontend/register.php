@@ -1,3 +1,73 @@
+<?php
+include "../backend/connection.php";
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+  $name = trim($_POST["name"] ?? "");
+  $email = trim($_POST["email"] ?? "");
+  $phone = trim($_POST["phone"] ?? "");
+  $password = $_POST["password"] ?? "";
+  $password_confirmation = $_POST["password_confirmation"] ?? "";
+  $pesan = "";
+  if ($name === "" || $email === "" || $phone === "" || $password === "" || $password_confirmation === "") {
+      $pesan = "Semua kolom wajib diisi.";
+  }
+  
+  else if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+      $pesan = "Format email tidak valid.";
+  }
+  
+  else if ($password !== $password_confirmation) {
+      $pesan = "Konfirmasi password tidak cocok.";
+  }
+  else if (strlen($password) < 8) {
+      $pesan = "Password minimal 8 karakter.";
+  }
+  else {
+    $email = mysqli_real_escape_string($conn, $email);
+    $query = mysqli_query($conn, "SELECT id FROM users WHERE email = '$email'");
+
+    if (!$query) {
+      $pesan = "Terjadi kesalahan database.";
+    }
+    elseif (mysqli_num_rows($query) > 0) {
+      $pesan = "Email sudah terdaftar.";
+    }
+    else {
+
+    // Simpan user
+      $name = mysqli_real_escape_string($conn, $name);
+      $phone = mysqli_real_escape_string($conn, $phone);
+      $password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+      $query = mysqli_query($conn, "
+        INSERT INTO users (name, email, password, role, phone)
+        VALUES ('$name', '$email', '$password_hash', 'pelamar', '$phone')
+      ");
+
+      if ($query) {
+
+        $user_id = mysqli_insert_id($conn);
+
+        // Buat profil pelamar
+        $query = mysqli_query($conn, "
+          INSERT INTO applicant_profiles (user_id)
+          VALUES ('$user_id')
+        ");
+
+        if ($query) {
+          header("Location: ../frontend/login.php?registered=1");
+          exit();
+        } else {
+          $pesan = "Gagal membuat profil pelamar.";
+        }
+
+      } else {
+          $pesan = "Pendaftaran gagal.";
+      }
+    }
+  }
+}
+?>
 
 <!DOCTYPE html>
 <html lang="en">

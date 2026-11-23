@@ -9,110 +9,615 @@ if (
     header("Location: ../login.php");
     exit;
 }
+?>
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Admin | TalentTrack</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | TalentTrack</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f5f7fb;
+            color: #1e293b;
+        }
+
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: #ffffff;
+            border-right: 1px solid #e5e7eb;
+            padding: 28px 20px;
+            position: fixed;
+            height: 100vh;
+        }
+
+        .logo {
+            font-size: 23px;
+            font-weight: 800;
+            color: #2563eb;
+            margin-bottom: 45px;
+            padding-left: 10px;
+        }
+
+        .menu-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+            margin: 25px 10px 12px;
+            letter-spacing: 1px;
+        }
+
+        .menu a {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            padding: 13px 14px;
+            margin-bottom: 7px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+
+        .menu a:hover,
+        .menu a.active {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .menu a.active {
+            font-weight: 700;
+        }
+
+        .menu-icon {
+            width: 20px;
+            text-align: center;
+            font-size: 17px;
+        }
+
+        /* Main Content */
+        .main {
+            margin-left: 250px;
+            width: calc(100% - 250px);
+            padding: 30px 35px;
+        }
+
+        /* Navbar */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 35px;
+        }
+
+        .page-title h1 {
+            font-size: 25px;
+            font-weight: 700;
+            margin-bottom: 7px;
+        }
+
+        .page-title p {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        .admin-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 43px;
+            height: 43px;
+            border-radius: 50%;
+            background: #dbeafe;
+            color: #2563eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 17px;
+        }
+
+        .admin-info h4 {
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .admin-info p {
+            color: #94a3b8;
+            font-size: 11px;
+        }
+
+        /* Welcome */
+        .welcome {
+            background: linear-gradient(120deg, #2563eb, #1e40af);
+            padding: 28px 30px;
+            border-radius: 12px;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .welcome h2 {
+            font-size: 21px;
+            margin-bottom: 9px;
+        }
+
+        .welcome p {
+            font-size: 13px;
+            color: #dbeafe;
+            line-height: 1.6;
+        }
+
+        /* Statistics */
+        .section-title {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 18px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 22px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .stat-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .stat-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .blue {
+            background: #eff6ff;
+        }
+
+        .green {
+            background: #ecfdf5;
+        }
+
+        .purple {
+            background: #f5f3ff;
+        }
+
+        .orange {
+            background: #fff7ed;
+        }
+
+        .stat-card p {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+        }
+
+        .stat-card h2 {
+            font-size: 27px;
+            font-weight: 700;
+        }
+
+        /* Table */
+        .table-container {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .table-header h3 {
+            font-size: 16px;
+        }
+
+        .view-all {
+            text-decoration: none;
+            color: #2563eb;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 15px 20px;
+        }
+
+        td {
+            padding: 17px 20px;
+            font-size: 12px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .applicant {
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .job-name {
+            color: #64748b;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .submitted {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .administrative_review {
+            background: #fff7ed;
+            color: #c2410c;
+        }
+
+        .interview {
+            background: #f5f3ff;
+            color: #7c3aed;
+        }
+
+        .accepted {
+            background: #ecfdf5;
+            color: #059669;
+        }
+
+        .rejected {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .withdrawn {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 35px;
+            color: #94a3b8;
+        }
+
+        /* Responsive */
+        @media (max-width: 1100px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 65px;
+                padding: 25px 8px;
+            }
+
+            .logo {
+                font-size: 0;
+                padding: 0;
+                text-align: center;
+            }
+
+            .logo:first-letter {
+                font-size: 22px;
+            }
+
+            .menu-title,
+            .menu a span:last-child {
+                display: none;
+            }
+
+            .menu a {
+                justify-content: center;
+                padding: 14px 5px;
+            }
+
+            .main {
+                margin-left: 65px;
+                width: calc(100% - 65px);
+                padding: 25px 18px;
+            }
+
+            .topbar {
+                gap: 15px;
+            }
+
+            .admin-info {
+                display: none;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            table {
+                min-width: 650px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .page-title h1 {
+                font-size: 20px;
+            }
+
+            .welcome {
+                padding: 22px;
+            }
+        }
+    </style>
 </head>
-<body data-page="admin">
-  <div class="app-shell">
-    <aside class="sidebar" id="sidebar">
-      <a class="brand" href="admin.html"><span class="brand-mark">T</span><span>Talent<span class="brand-light">Track</span></span></a>
-      <div class="sidebar-label">MENU UTAMA</div>
-      <nav class="side-nav">
-        <a class="nav-link active" href="admin.html"><span class="nav-icon"></span>Dashboard</a>
-        <a class="nav-link" href="#lowongan"><span class="nav-icon"></span>Lowongan</a>
-        <a class="nav-link" href="#pelamar"><span class="nav-icon"></span>Data Pelamar</a>
-      </nav>
-      <div class="sidebar-bottom">
-        <div class="help-card">
-          <div class="help-icon">?</div>
-          <strong>Butuh bantuan?</strong>
-          <p>Hubungi tim support jika mengalami kendala.</p>
-          <a href="mailto: support@talenttrack.test">Hubungi Support</a>
-        </div>
-        <a class="nav-link logout-link" href="login.html" id="logoutLink"><span class="nav-icon">↪</span>Keluar</a>
-      </div>
+
+<body>
+
+<div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+
+        <div class="logo">TalentTrack.</div>
+
+        <div class="menu-title">MENU UTAMA</div>
+
+        <nav class="menu">
+
+            <a href="dashboard.php" class="active">
+                <span class="menu-icon">▦</span>
+                <span>Dashboard</span>
+            </a>
+
+            <a href="jobs.php">
+                <span class="menu-icon">▤</span>
+                <span>Lowongan Pekerjaan</span>
+            </a>
+
+            <a href="applicants.php">
+                <span class="menu-icon">♙</span>
+                <span>Data Pelamar</span>
+            </a>
+
+            <a href="applications.php">
+                <span class="menu-icon">▣</span>
+                <span>Data Lamaran</span>
+            </a>
+
+        </nav>
+
+        <div class="menu-title">AKUN</div>
+
+        <nav class="menu">
+            <a href="../logout.php">
+                <span class="menu-icon">⇥</span>
+                <span>Logout</span>
+            </a>
+        </nav>
+
     </aside>
 
-    <main class="main-content">
-      <header class="topbar">
-        <button class="menu-toggle" id="menuToggle" aria-label="Buka menu">☰</button>
-        <div class="breadcrumb">Halaman <span>/</span> <strong>Dashboard</strong></div>
-        <div class="topbar-right">
-          <button class="icon-button notification-button" aria-label="Notifikasi">♧<i></i></button>
-          <div class="user-menu">
-            <div class="avatar avatar-blue">AD</div>
-            <div class="user-meta"><strong>Admin HR</strong><span>Administrator</span></div>
-            <span class="chevron">⌄</span>
-          </div>
-        </div>
-      </header>
+    <!-- Main Content -->
+    <main class="main">
 
-      <section class="page-content">
-        <div class="welcome-row">
-          <div>
-            <p class="eyebrow">SENIN, 9 NOVEMBER 2026</p>
-            <h1>Selamat datang, Admin!</h1>
-            <p class="muted">Berikut ringkasan aktivitas rekrutmen perusahaan hari ini.</p>
-          </div>
-          <a class="primary-button" href="#lowongan">＋ Tambah Lowongan</a>
-        </div>
+        <!-- Topbar -->
+        <header class="topbar">
 
-        <div class="stats-grid">
-          <article class="stat-card">
-            <div class="stat-top"><span>Total Lowongan</span><span class="stat-icon blue-soft">▤</span></div>
-            <div class="stat-value">12</div><div class="stat-note"><span class="positive">+2</span> dibanding bulan lalu</div>
-          </article>
-          <article class="stat-card">
-            <div class="stat-top"><span>Total Pelamar</span><span class="stat-icon purple-soft">♙</span></div>
-            <div class="stat-value">148</div><div class="stat-note"><span class="positive">+18%</span> dibanding bulan lalu</div>
-          </article>
-          <article class="stat-card">
-            <div class="stat-top"><span>Perlu Ditinjau</span><span class="stat-icon orange-soft">◷</span></div>
-            <div class="stat-value">24</div><div class="stat-note">Lamaran menunggu pemeriksaan</div>
-          </article>
-          <article class="stat-card">
-            <div class="stat-top"><span>Pelamar Diterima</span><span class="stat-icon green-soft">✓</span></div>
-            <div class="stat-value">8</div><div class="stat-note">Pada periode ini</div>
-          </article>
-        </div>
-
-        <div class="content-grid">
-          <section class="panel" id="pelamar">
-            <div class="panel-heading">
-              <div><h2>Pelamar Terbaru</h2><p class="muted">Pelamar yang baru mengirimkan lamaran.</p></div>
-              <a class="text-link" href="#semua-pelamar">Lihat semua <span>→</span></a>
+            <div class="page-title">
+                <h1>Dashboard</h1>
+                <p>Overview aktivitas rekrutmen perusahaan.</p>
             </div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>NAMA PELAMAR</th><th>POSISI</th><th>TANGGAL</th><th>STATUS</th></tr></thead>
+
+            <div class="admin-profile">
+
+                <div class="avatar">
+                    <?php echo strtoupper(substr($data_admin['name'] ?? 'A', 0, 1)); ?>
+                </div>
+
+                <div class="admin-info">
+                    <h4>
+                        <?php echo htmlspecialchars($data_admin['name'] ?? 'Administrator'); ?>
+                    </h4>
+                    <p>Administrator</p>
+                </div>
+
+            </div>
+
+        </header>
+
+        <!-- Welcome -->
+        <section class="welcome">
+            <h2>
+                Selamat Datang,
+                <?php echo htmlspecialchars($data_admin['name'] ?? 'Admin'); ?>!
+            </h2>
+
+            <p>
+                Kelola proses rekrutmen, lowongan pekerjaan, dan data
+                pelamar perusahaan melalui dashboard TalentTrack.
+            </p>
+        </section>
+
+        <!-- Statistics -->
+        <h3 class="section-title">Ringkasan Data</h3>
+
+        <section class="stats">
+
+            <div class="stat-card">
+                <div class="stat-top">
+                    <div>
+                        <p>Total Pelamar</p>
+                        <h2><?php echo $pelamar['total']; ?></h2>
+                    </div>
+                    <div class="stat-icon blue">♙</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-top">
+                    <div>
+                        <p>Lowongan Aktif</p>
+                        <h2><?php echo $lowongan['total']; ?></h2>
+                    </div>
+                    <div class="stat-icon green">▤</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-top">
+                    <div>
+                        <p>Total Lamaran</p>
+                        <h2><?php echo $lamaran['total']; ?></h2>
+                    </div>
+                    <div class="stat-icon purple">▣</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-top">
+                    <div>
+                        <p>Menunggu Review</p>
+                        <h2><?php echo $review['total']; ?></h2>
+                    </div>
+                    <div class="stat-icon orange">◷</div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Recent Applications -->
+        <section class="table-container">
+
+            <div class="table-header">
+                <h3>Lamaran Terbaru</h3>
+                <a href="applications.php" class="view-all">Lihat Semua →</a>
+            </div>
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>PELAMAR</th>
+                        <th>POSISI</th>
+                        <th>TANGGAL</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+
                 <tbody>
-                  <tr><td><div class="person-cell"><div class="avatar avatar-pink">NA</div><div><strong>Nadia Ananda</strong><small>nadia@email.com</small></div></div></td><td>UI/UX Designer</td><td>09 Nov 2026</td><td><span class="status status-review">Ditinjau</span></td></tr>
-                  <tr><td><div class="person-cell"><div class="avatar avatar-yellow">RF</div><div><strong>Rizky Firmansyah</strong><small>rizky@email.com</small></div></div></td><td>Frontend Developer</td><td>08 Nov 2026</td><td><span class="status status-pending">Menunggu</span></td></tr>
-                  <tr><td><div class="person-cell"><div class="avatar avatar-green">SP</div><div><strong>Siti Putri</strong><small>siti@email.com</small></div></div></td><td>HR Staff</td><td>08 Nov 2026</td><td><span class="status status-accepted">Diterima</span></td></tr>
-                  <tr><td><div class="person-cell"><div class="avatar avatar-purple">DA</div><div><strong>Dimas Aditya</strong><small>dimas@email.com</small></div></div></td><td>UI/UX Designer</td><td>07 Nov 2026</td><td><span class="status status-rejected">Ditolak</span></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
 
-          <section class="panel jobs-panel" id="lowongan">
-            <div class="panel-heading"><div><h2>Lowongan Aktif</h2><p class="muted">Posisi yang sedang dibuka.</p></div><a class="text-link" href="#semua-lowongan">Lihat semua <span>→</span></a></div>
-            <div class="job-mini"><div class="job-symbol symbol-blue">✳</div><div class="job-info"><strong>UI/UX Designer</strong><span>Desain Produk · Full Time</span></div><b>18 <small>pelamar</small></b></div>
-            <div class="job-mini"><div class="job-symbol symbol-purple">⌘</div><div class="job-info"><strong>Frontend Developer</strong><span>Teknologi · Full Time</span></div><b>24 <small>pelamar</small></b></div>
-            <div class="job-mini"><div class="job-symbol symbol-orange">▣</div><div class="job-info"><strong>HR Staff</strong><span>Human Resource · Kontrak</span></div><b>12 <small>pelamar</small></b></div>
-            <a href="#lowongan" class="outline-button full-button">Kelola Lowongan</a>
-          </section>
-        </div>
-        <footer class="footer">© 2026 TalentTrack. All rights reserved.</footer>
-      </section>
+                    <?php if ($query_lamaran && mysqli_num_rows($query_lamaran) > 0) { ?>
+
+                        <?php while ($row = mysqli_fetch_assoc($query_lamaran)) { ?>
+
+                            <tr>
+                                <td class="applicant">
+                                    <?php echo htmlspecialchars($row['applicant_name']); ?>
+                                </td>
+
+                                <td class="job-name">
+                                    <?php echo htmlspecialchars($row['job_title']); ?>
+                                </td>
+
+                                <td>
+                                    <?php echo date('d/m/Y', strtotime($row['applied_at'])); ?>
+                                </td>
+
+                                <td>
+                                    <span class="status <?php echo htmlspecialchars($row['status']); ?>">
+                                        <?php
+                                        $status = [
+                                            'submitted' => 'Dikirim',
+                                            'administrative_review' => 'Review Administrasi',
+                                            'interview' => 'Interview',
+                                            'accepted' => 'Diterima',
+                                            'rejected' => 'Ditolak',
+                                            'withdrawn' => 'Dibatalkan'
+                                        ];
+
+                                        echo $status[$row['status']] ?? $row['status'];
+                                        ?>
+                                    </span>
+                                </td>
+                            </tr>
+
+                        <?php } ?>
+
+                    <?php } else { ?>
+
+                        <tr>
+                            <td colspan="4" class="empty">
+                                Belum ada lamaran masuk.
+                            </td>
+                        </tr>
+
+                    <?php } ?>
+
+                </tbody>
+
+            </table>
+
+        </section>
+
     </main>
-  </div>
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
-  <script src="js/script.js"></script>
+
+</div>
+
 </body>
 </html>
