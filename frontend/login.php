@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header("Location: admin/dashboard.php");
                     exit;
                 } elseif ($userRole === 'pelamar') {
-                    header("Location: user/dashboard.php");
+                    header("Location: pelamar/dashboard.php");
                     exit;
                 } else {
                     $error = "Role akun tidak valid.";
