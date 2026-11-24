@@ -13,6 +13,9 @@ require '../../backend/connection.php';
 
 $applicant_id = (int) $_SESSION['user_id'];
 
+// Pilihan tingkat pendidikan (harus sama dengan filter di halaman admin)
+$daftarPendidikan = ['SMA/SMK', 'D3', 'D4', 'S1', 'S2', 'S3'];
+
 // 1. Proses pembaruan data profil & foto (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json; charset=utf-8');
@@ -20,6 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama    = trim($_POST['nama'] ?? '');
     $email   = trim($_POST['email'] ?? '');
     $telepon = trim($_POST['telepon'] ?? '');
+    $pendidikan = trim($_POST['pendidikan'] ?? '');
+    $institusi  = trim($_POST['institusi'] ?? '');
+    $jurusan    = trim($_POST['jurusan'] ?? '');
+    $alamat     = trim($_POST['alamat'] ?? '');
+    $bio        = trim($_POST['bio'] ?? '');
 
     $errors = [];
     if ($nama === '' || mb_strlen($nama) > 100) {
@@ -30,6 +38,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($telepon !== '' && !preg_match('/^[0-9+\-\s]{8,20}$/', $telepon)) {
         $errors[] = 'Nomor telepon hanya boleh berisi angka, spasi, + dan -.';
+    }
+
+    if ($pendidikan !== '' && !in_array($pendidikan, $daftarPendidikan, true)) {
+        $errors[] = 'Tingkat pendidikan tidak valid.';
+    }
+    if (mb_strlen($institusi) > 150) {
+        $errors[] = 'Nama institusi maksimal 150 karakter.';
+    }
+    if (mb_strlen($jurusan) > 150) {
+        $errors[] = 'Jurusan maksimal 150 karakter.';
+    }
+    if (mb_strlen($alamat) > 500) {
+        $errors[] = 'Alamat maksimal 500 karakter.';
+    }
+    if (mb_strlen($bio) > 1000) {
+        $errors[] = 'Bio maksimal 1000 karakter.';
     }
 
     // Cek email tidak dipakai akun lain
@@ -97,6 +121,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmtUpdUser->execute();
         $stmtUpdUser->close();
 
+        // Simpan data pendidikan, alamat, dan bio (kosong disimpan sebagai NULL)
+        $pendParam   = $pendidikan !== '' ? $pendidikan : null;
+        $instParam   = $institusi !== '' ? $institusi : null;
+        $jurParam    = $jurusan !== '' ? $jurusan : null;
+        $alamatParam = $alamat !== '' ? $alamat : null;
+        $bioParam    = $bio !== '' ? $bio : null;
+        $stmtUpdProfile = $conn->prepare("
+            INSERT INTO applicant_profiles
+                (user_id, education_level, institution, major, address, bio)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                education_level = VALUES(education_level),
+                institution = VALUES(institution),
+                major = VALUES(major),
+                address = VALUES(address),
+                bio = VALUES(bio)
+        ");
+        $stmtUpdProfile->bind_param("isssss", $applicant_id, $pendParam, $instParam, $jurParam, $alamatParam, $bioParam);
+        $stmtUpdProfile->execute();
+        $stmtUpdProfile->close();
+
         if ($newPhotoDbPath !== null) {
             $stmtUpdPhoto = $conn->prepare("
                 INSERT INTO applicant_profiles (user_id, photo_path)
@@ -133,7 +178,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // 2. Ambil data profil user + foto dari users & applicant_profiles
 $sqlProfil = "
-    SELECT u.name, u.email, u.phone, ap.photo_path
+    SELECT u.name, u.email, u.phone, ap.photo_path,
+           ap.education_level, ap.institution, ap.major, ap.address, ap.bio
     FROM users u
     LEFT JOIN applicant_profiles ap ON ap.user_id = u.id
     WHERE u.id = ?
@@ -149,6 +195,11 @@ $namaUser    = $user['name'] ?? 'Pelamar';
 $emailUser   = $user['email'] ?? '';
 $teleponUser = $user['phone'] ?? '';
 $photoPath   = $user['photo_path'] ?? '';
+$pendidikanUser = $user['education_level'] ?? '';
+$institusiUser  = $user['institution'] ?? '';
+$jurusanUser    = $user['major'] ?? '';
+$alamatUser     = $user['address'] ?? '';
+$bioUser        = $user['bio'] ?? '';
 
 $kataNama = preg_split('/\s+/', trim($namaUser));
 $inisial  = '';
@@ -351,6 +402,31 @@ body { background: #e9f0fb; }
             <div class="sm:col-span-2">
               <label for="telepon" class="mb-1 block text-xs font-semibold text-slate-700">Nomor telepon</label>
               <input type="tel" id="telepon" name="telepon" value="<?= htmlspecialchars($teleponUser, ENT_QUOTES, 'UTF-8') ?>" placeholder="0812 3456 7890" class="field">
+            </div>
+            <div>
+              <label for="pendidikan" class="mb-1 block text-xs font-semibold text-slate-700">Tingkat pendidikan</label>
+              <select id="pendidikan" name="pendidikan" class="field">
+                <option value="">Pilih tingkat pendidikan</option>
+                <?php foreach ($daftarPendidikan as $opsi): ?>
+                  <option value="<?= htmlspecialchars($opsi, ENT_QUOTES, 'UTF-8') ?>"<?= $pendidikanUser === $opsi ? ' selected' : '' ?>><?= htmlspecialchars($opsi, ENT_QUOTES, 'UTF-8') ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div>
+              <label for="institusi" class="mb-1 block text-xs font-semibold text-slate-700">Institusi / sekolah</label>
+              <input type="text" id="institusi" name="institusi" value="<?= htmlspecialchars($institusiUser, ENT_QUOTES, 'UTF-8') ?>" maxlength="150" placeholder="Contoh: Universitas Gadjah Mada" class="field">
+            </div>
+            <div class="sm:col-span-2">
+              <label for="jurusan" class="mb-1 block text-xs font-semibold text-slate-700">Jurusan</label>
+              <input type="text" id="jurusan" name="jurusan" value="<?= htmlspecialchars($jurusanUser, ENT_QUOTES, 'UTF-8') ?>" maxlength="150" placeholder="Contoh: Teknik Informatika" class="field">
+            </div>
+            <div class="sm:col-span-2">
+              <label for="alamat" class="mb-1 block text-xs font-semibold text-slate-700">Alamat</label>
+              <textarea id="alamat" name="alamat" rows="2" maxlength="500" class="field"><?= htmlspecialchars($alamatUser, ENT_QUOTES, 'UTF-8') ?></textarea>
+            </div>
+            <div class="sm:col-span-2">
+              <label for="bio" class="mb-1 block text-xs font-semibold text-slate-700">Bio singkat</label>
+              <textarea id="bio" name="bio" rows="4" maxlength="1000" placeholder="Ceritakan singkat tentang diri dan keahlian Anda" class="field"><?= htmlspecialchars($bioUser, ENT_QUOTES, 'UTF-8') ?></textarea>
             </div>
           </div>
 

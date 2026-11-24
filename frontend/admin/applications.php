@@ -21,24 +21,17 @@ $statusLabels = [
     'withdrawn' => 'Dibatalkan'
 ];
 
+// Pesan notifikasi dari redirect (?pesan=...)
+$flash = [
+    'berhasil_diubah'     => ['ok',  'Status lamaran berhasil diperbarui.'],
+    'gagal_diubah'        => ['err', 'Gagal memperbarui status lamaran.'],
+    'id_tidak_valid'      => ['err', 'ID lamaran tidak valid.'],
+    'status_tidak_valid'  => ['err', 'Status lamaran tidak valid.'],
+];
+$kunciPesan = is_string($_GET['pesan'] ?? null) ? $_GET['pesan'] : '';
+$pesanFlash = $flash[$kunciPesan] ?? null;
+
 ?>
-
-<?php if (isset($_GET['pesan'])) : ?>
-
-    <?php if ($_GET['pesan'] == 'berhasil_diubah') : ?>
-        <p>Status lamaran berhasil diperbarui.</p>
-
-    <?php elseif ($_GET['pesan'] == 'gagal_diubah') : ?>
-        <p>Gagal memperbarui status lamaran.</p>
-
-    <?php elseif ($_GET['pesan'] == 'id_tidak_valid') : ?>
-        <p>ID lamaran tidak valid.</p>
-
-    <?php elseif ($_GET['pesan'] == 'status_tidak_valid') : ?>
-        <p>Status lamaran tidak valid.</p>
-    <?php endif; ?>
-
-<?php endif; ?>
 
 <!DOCTYPE html>
 <html lang="id">
@@ -647,6 +640,12 @@ $statusLabels = [
             </div>
 
         </header>
+
+        <?php if ($pesanFlash): ?>
+            <div role="alert" style="margin-bottom:16px;padding:12px 16px;border-radius:10px;font-size:14px;background:<?= $pesanFlash[0] === 'ok' ? '#dcfce7' : '#fee2e2' ?>;color:<?= $pesanFlash[0] === 'ok' ? '#166534' : '#991b1b' ?>;">
+                <?= htmlspecialchars($pesanFlash[1], ENT_QUOTES, 'UTF-8') ?>
+            </div>
+        <?php endif; ?>
 
         <!-- Statistics -->
 

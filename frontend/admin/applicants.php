@@ -512,7 +512,7 @@ require_once __DIR__ . '/../../backend/admin/applicants_data.php';
 
                     <?php while ($data = mysqli_fetch_assoc($query_applicants)) : ?>
 
-                        <tr data-education="<?= htmlspecialchars($data['education_level'] ?? '') ?>">>
+                        <tr data-education="<?= htmlspecialchars($data['education_level'] ?? '') ?>">
                             <td>
                                 <?= htmlspecialchars($data['name']) ?>
                             </td>

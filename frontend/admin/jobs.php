@@ -12,21 +12,19 @@ if (
 
 require_once __DIR__ . '/../../backend/admin/jobs_data.php';
 
+// Pesan notifikasi dari redirect (?pesan=...)
+$flash = [
+    'ditambahkan'      => ['ok',  'Lowongan berhasil ditambahkan.'],
+    'diubah'           => ['ok',  'Lowongan berhasil diperbarui.'],
+    'dihapus'          => ['ok',  'Lowongan berhasil dihapus.'],
+    'memiliki_lamaran' => ['err', 'Lowongan tidak bisa dihapus karena sudah memiliki lamaran.'],
+    'gagal_hapus'      => ['err', 'Gagal menghapus lowongan.'],
+    'id_tidak_valid'   => ['err', 'ID lowongan tidak valid.'],
+];
+$kunciPesan = is_string($_GET['pesan'] ?? null) ? $_GET['pesan'] : '';
+$pesanFlash = $flash[$kunciPesan] ?? null;
+
 ?>
-
-<?php if (isset($_GET['pesan'])) : ?>
-
-    <?php if ($_GET['pesan'] == 'dihapus') : ?>
-        <p>Lowongan berhasil dihapus.</p>
-
-    <?php elseif ($_GET['pesan'] == 'memiliki_lamaran') : ?>
-        <p>Lowongan tidak bisa dihapus karena sudah memiliki lamaran.</p>
-
-    <?php elseif ($_GET['pesan'] == 'gagal_hapus') : ?>
-        <p>Gagal menghapus lowongan.</p>
-    <?php endif; ?>
-
-<?php endif; ?>
 
 <!DOCTYPE html>
 <html lang="id">
@@ -577,6 +575,40 @@ require_once __DIR__ . '/../../backend/admin/jobs_data.php';
             }
         }
 
+
+        .action-buttons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .action-buttons form {
+            margin: 0;
+        }
+
+        .btn-edit,
+        .btn-delete {
+            display: inline-block;
+            padding: 9px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .btn-edit {
+            background: #eaf1ff;
+            color: #2563eb;
+        }
+
+        .btn-delete {
+            background: #2563eb;
+            color: white;
+        }
+
+
     </style>
 </head>
 
@@ -646,6 +678,12 @@ require_once __DIR__ . '/../../backend/admin/jobs_data.php';
             </div>
 
         </header>
+
+        <?php if ($pesanFlash): ?>
+            <div role="alert" style="margin-bottom:16px;padding:12px 16px;border-radius:10px;font-size:14px;background:<?= $pesanFlash[0] === 'ok' ? '#dcfce7' : '#fee2e2' ?>;color:<?= $pesanFlash[0] === 'ok' ? '#166534' : '#991b1b' ?>;">
+                <?= htmlspecialchars($pesanFlash[1], ENT_QUOTES, 'UTF-8') ?>
+            </div>
+        <?php endif; ?>
 
         <!-- Statistics -->
         <section class="stats">
@@ -719,157 +757,49 @@ require_once __DIR__ . '/../../backend/admin/jobs_data.php';
                     </tr>
                 </thead>
 
+                
                 <tbody>
+                    <?php
+                        $jobs = [];
 
-                    <?php while ($data = mysqli_fetch_assoc($query_jobs)) : ?>
+                        while ($data = mysqli_fetch_assoc($query_jobs)) :
+                            $jobs[] = $data;
+                        ?>
+                            <tr data-status="<?= htmlspecialchars($data['status']) ?>">
+                                <td class="job-name"><?= htmlspecialchars($data['title']) ?></td>
+                                <td><?= htmlspecialchars($data['category']) ?></td>
+                                <td><?= htmlspecialchars($data['location']) ?></td>
+                                <td><?= htmlspecialchars($data['employment_type']) ?></td>
+                                <td><?= htmlspecialchars($data['created_at']) ?></td>
+                                <td><?= htmlspecialchars($data['status']) ?></td>
+                                <td>
+                                    <div class="action-buttons">
 
-                        <tr data-status="<?= htmlspecialchars($data['status']) ?>>
-                            <td><?= htmlspecialchars($data['title']) ?></td>
+                                        <button type="button"
+                                            class="btn-edit"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalEdit<?= $data['id'] ?>">
+                                            Edit
+                                        </button>
 
-                            <td><?= htmlspecialchars($data['category'] ?? '-') ?></td>
+                                        <form action="../../backend/admin/jobs_delete.php"
+                                            method="POST"
+                                            onsubmit="return confirm('Yakin ingin menghapus lowongan ini?')">
 
-                            <td><?= htmlspecialchars($data['location'] ?? '-') ?></td>
+                                            <input type="hidden" name="id"
+                                                value="<?= $data['id'] ?>">
 
-                            <td><?= htmlspecialchars($data['employment_type']) ?></td>
+                                            <button type="submit" class="btn-delete">
+                                                Hapus
+                                            </button>
+                                        </form>
 
-                            <td><?= htmlspecialchars($data['deadline'] ?? '-') ?></td>
-
-                            <td><?= htmlspecialchars($data['status']) ?></td>
-
-                            <td>
-                                <button
-                                    type="button"
-                                    class="btn"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#modalEdit<?= (int) $data['id'] ?>">
-                                    Edit
-                                </button>
-
-                                <form action="../../backend/admin/jobs_delete.php"
-                                    method="POST"
-                                    onsubmit="return confirm('Apakah kamu yakin ingin menghapus lowongan ini?')"
-                                    style="display: inline;">
-
-                                    <input type="hidden" name="id"
-                                        value="<?= (int) $data['id'] ?>">
-
-                                    <button type="submit" class="btn btn-danger">
-                                        Hapus
-                                    </button>
-
-                                </form>
-
-                                <!-- MODAL EDIT -->
-                                <div class="modal fade" id="modalEdit<?= (int) $data['id'] ?>" tabindex="-1">
-                                    <div class="modal-dialog modal-lg">
-                                        <div class="modal-content">
-
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Edit Lowongan</h5>
-
-                                                <button
-                                                    type="button"
-                                                    class="btn-close"
-                                                    data-bs-dismiss="modal">
-                                                </button>
-                                            </div>
-
-                                            <div class="modal-body">
-
-                                                <form action="../../backend/admin/jobs_edit.php"
-                                                    method="POST"
-                                                    class="job-form">
-
-                                                    <input type="hidden" name="id"
-                                                        value="<?= (int) $data['id'] ?>">
-
-                                                    <div class="form-group">
-                                                        <label>Nama Lowongan</label>
-                                                        <input type="text" name="title"
-                                                            value="<?= htmlspecialchars($data['title']) ?>" required>
-                                                    </div>
-
-                                                    <div class="form-group">
-                                                        <label>Kategori</label>
-                                                        <input type="text" name="category"
-                                                            value="<?= htmlspecialchars($data['category'] ?? '') ?>">
-                                                    </div>
-
-                                                    <div class="form-group">
-                                                        <label>Tipe Pekerjaan</label>
-                                                        <select name="employment_type" required>
-                                                            <option value="full_time" <?= $data['employment_type'] == 'full_time' ? 'selected' : '' ?>>Full Time</option>
-                                                            <option value="part_time" <?= $data['employment_type'] == 'part_time' ? 'selected' : '' ?>>Part Time</option>
-                                                            <option value="internship" <?= $data['employment_type'] == 'internship' ? 'selected' : '' ?>>Internship</option>
-                                                            <option value="contract" <?= $data['employment_type'] == 'contract' ? 'selected' : '' ?>>Contract</option>
-                                                        </select>
-                                                    </div>
-
-                                                    <div class="form-group">
-                                                        <label>Lokasi</label>
-                                                        <input type="text" name="location"
-                                                            value="<?= htmlspecialchars($data['location'] ?? '') ?>">
-                                                    </div>
-
-                                                    <div class="form-group full-width">
-                                                        <label>Deskripsi</label>
-                                                        <textarea name="description" required><?= htmlspecialchars($data['description']) ?></textarea>
-                                                    </div>
-
-                                                    <div class="form-group full-width">
-                                                        <label>Persyaratan</label>
-                                                        <textarea name="requirements"><?= htmlspecialchars($data['requirements'] ?? '') ?></textarea>
-                                                    </div>
-
-                                                    <div class="form-group full-width">
-                                                        <label>Tanggung Jawab</label>
-                                                        <textarea name="responsibilities"><?= htmlspecialchars($data['responsibilities'] ?? '') ?></textarea>
-                                                    </div>
-
-                                                    <div class="form-group">
-                                                        <label>Gaji Minimum</label>
-                                                        <input type="number" name="salary_min" min="0"
-                                                            value="<?= htmlspecialchars($data['salary_min'] ?? '') ?>">
-                                                    </div>
-
-                                                    <div class="form-group">
-                                                        <label>Gaji Maksimum</label>
-                                                        <input type="number" name="salary_max" min="0"
-                                                            value="<?= htmlspecialchars($data['salary_max'] ?? '') ?>">
-                                                    </div>
-
-                                                    <div class="form-group">
-                                                        <label>Deadline</label>
-                                                        <input type="date" name="deadline"
-                                                            value="<?= htmlspecialchars($data['deadline'] ?? '') ?>">
-                                                    </div>
-
-                                                    <div class="form-group">
-                                                        <label>Status</label>
-                                                        <select name="status" required>
-                                                            <option value="draft" <?= $data['status'] == 'draft' ? 'selected' : '' ?>>Draft</option>
-                                                            <option value="published" <?= $data['status'] == 'published' ? 'selected' : '' ?>>Published</option>
-                                                            <option value="closed" <?= $data['status'] == 'closed' ? 'selected' : '' ?>>Closed</option>
-                                                        </select>
-                                                    </div>
-
-                                                    <button type="submit" class="btn-submit">
-                                                        Simpan Perubahan
-                                                    </button>
-
-                                                </form>
-
-                                            </div>
-                                        </div>
                                     </div>
-                                </div>
+                                </td>
+                            </tr>
+                        <?php endwhile; ?>
+                        </tbody>
 
-                            </td>
-                        </tr>
-
-                    <?php endwhile; ?>
-
-                </tbody>
 
             </table>
 
@@ -878,6 +808,111 @@ require_once __DIR__ . '/../../backend/admin/jobs_data.php';
             </div>
 
         </section>
+
+
+        <?php foreach ($jobs as $data) : ?>
+
+        <div class="modal fade" id="modalEdit<?= $data['id'] ?>" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Lowongan</h5>
+                        <button type="button" class="btn-close"
+                            data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+
+                        <form action="../../backend/admin/jobs_edit.php"
+                            method="POST" class="job-form">
+
+                            <input type="hidden" name="id"
+                                value="<?= $data['id'] ?>">
+
+                            <div class="form-group">
+                                <label>Nama Lowongan</label>
+                                <input type="text" name="title"
+                                    value="<?= htmlspecialchars($data['title']) ?>"
+                                    required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Kategori</label>
+                                <input type="text" name="category"
+                                    value="<?= htmlspecialchars($data['category']) ?>">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Tipe Pekerjaan</label>
+                                <select name="employment_type" required>
+                                    <option value="full_time" <?= $data['employment_type'] == 'full_time' ? 'selected' : '' ?>>Full Time</option>
+                                    <option value="part_time" <?= $data['employment_type'] == 'part_time' ? 'selected' : '' ?>>Part Time</option>
+                                    <option value="internship" <?= $data['employment_type'] == 'internship' ? 'selected' : '' ?>>Internship</option>
+                                    <option value="contract" <?= $data['employment_type'] == 'contract' ? 'selected' : '' ?>>Contract</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Lokasi</label>
+                                <input type="text" name="location"
+                                    value="<?= htmlspecialchars($data['location']) ?>">
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label>Deskripsi</label>
+                                <textarea name="description"><?= htmlspecialchars($data['description']) ?></textarea>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label>Persyaratan</label>
+                                <textarea name="requirements"><?= htmlspecialchars($data['requirements']) ?></textarea>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label>Tanggung Jawab</label>
+                                <textarea name="responsibilities"><?= htmlspecialchars($data['responsibilities']) ?></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Gaji Minimum</label>
+                                <input type="number" name="salary_min"
+                                    value="<?= htmlspecialchars($data['salary_min'] ?? '') ?>">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Gaji Maksimum</label>
+                                <input type="number" name="salary_max"
+                                    value="<?= htmlspecialchars($data['salary_max'] ?? '') ?>">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Deadline</label>
+                                <input type="date" name="deadline"
+                                    value="<?= htmlspecialchars($data['deadline'] ?? '') ?>">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select name="status" required>
+                                    <option value="draft" <?= $data['status'] == 'draft' ? 'selected' : '' ?>>Draft</option>
+                                    <option value="published" <?= $data['status'] == 'published' ? 'selected' : '' ?>>Published</option>
+                                    <option value="closed" <?= $data['status'] == 'closed' ? 'selected' : '' ?>>Closed</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn-submit">
+                                Simpan Perubahan
+                            </button>
+
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <?php endforeach; ?>
 
          <!-- MODAL TAMBAH LOWONGAN -->
         <div class="modal fade" id="modalTambah" tabindex="-1">
