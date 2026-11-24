@@ -55,41 +55,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Validasi file CV (PDF, maksimal 2 MB)
-    if (!isset($_FILES['cv']) || $_FILES['cv']['error'] !== UPLOAD_ERR_OK) {
+    if (!isset($_FILES['cv']) || $_FILES['cv']['error'] === UPLOAD_ERR_NO_FILE) {
         echo json_encode(['success' => false, 'message' => 'File CV wajib diunggah.']);
+        exit;
+    }
+    if ($_FILES['cv']['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($_FILES['cv']['tmp_name'])) {
+        echo json_encode(['success' => false, 'message' => 'Unggahan CV gagal. Silakan pilih file PDF dan coba kembali.']);
         exit;
     }
 
     $fileCv = $_FILES['cv'];
-    if ($fileCv['size'] > 2 * 1024 * 1024) {
+    if ((int) $fileCv['size'] <= 0 || $fileCv['size'] > 2 * 1024 * 1024) {
         echo json_encode(['success' => false, 'message' => 'Ukuran file CV maksimal 2 MB.']);
         exit;
     }
 
-    $finfo    = new finfo(FILEINFO_MIME_TYPE);
-    $mimeType = $finfo->file($fileCv['tmp_name']);
-    if ($mimeType !== 'application/pdf') {
-        echo json_encode(['success' => false, 'message' => 'File CV harus berformat PDF.']);
+    $ekstensiCv = strtolower(pathinfo((string) $fileCv['name'], PATHINFO_EXTENSION));
+    $finfo      = new finfo(FILEINFO_MIME_TYPE);
+    $mimeType   = $finfo->file($fileCv['tmp_name']);
+    if ($ekstensiCv !== 'pdf' || $mimeType !== 'application/pdf') {
+        echo json_encode(['success' => false, 'message' => 'File CV harus berupa dokumen PDF.']);
         exit;
     }
 
-    $uploadDir = __DIR__ . '/../../uploads/cv';
-    if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
+    // Simpan CV di direktori khusus pelamar; akses langsung diblokir oleh .htaccess.
+    $uploadDir = __DIR__ . '/cv-storage';
+    if (!is_dir($uploadDir) && !mkdir($uploadDir, 0700, true) && !is_dir($uploadDir)) {
+        echo json_encode(['success' => false, 'message' => 'Direktori penyimpanan CV tidak dapat dibuat.']);
+        exit;
     }
 
     $namaFileBaru = 'cv_' . $applicant_id . '_' . $job_id . '_' . bin2hex(random_bytes(8)) . '.pdf';
-    $tujuanFile   = $uploadDir . '/' . $namaFileBaru;
-    $pathDb       = 'uploads/cv/' . $namaFileBaru;
+    $tujuanFile   = $uploadDir . DIRECTORY_SEPARATOR . $namaFileBaru;
+    $pathDb       = 'frontend/pelamar/cv-storage/' . $namaFileBaru;
 
     if (!move_uploaded_file($fileCv['tmp_name'], $tujuanFile)) {
         echo json_encode(['success' => false, 'message' => 'Gagal menyimpan file CV di server.']);
         exit;
     }
 
-    // Simpan ke tabel applications & application_documents
-    $conn->begin_transaction();
+    // Simpan ke tabel applications & application_documents secara atomik.
     try {
+        $conn->begin_transaction();
         $stmtInsertApp = $conn->prepare("
             INSERT INTO applications (job_id, applicant_id, applied_at, status)
             VALUES (?, ?, NOW(), 'submitted')
@@ -123,7 +130,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (is_file($tujuanFile)) {
             unlink($tujuanFile);
         }
-        echo json_encode(['success' => false, 'message' => 'Terjadi kesalahan saat menyimpan lamaran.']);
+        error_log('Gagal menyimpan lamaran pelamar: ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Terjadi kesalahan saat menyimpan lamaran. Silakan coba kembali.']);
     }
     exit;
 }
@@ -170,12 +178,16 @@ $sqlJobs = "
         j.category,
         j.location,
         j.description,
+        j.employment_type,
+        j.salary_min,
+        j.salary_max,
         j.deadline,
         a.id AS application_id
     FROM jobs j
     LEFT JOIN applications a 
         ON a.job_id = j.id AND a.applicant_id = ?
     WHERE j.status = 'published'
+      AND (j.deadline IS NULL OR j.deadline >= CURDATE())
     ORDER BY j.created_at DESC, j.id DESC
 ";
 $stmtJobs = $conn->prepare($sqlJobs);
@@ -205,6 +217,29 @@ function formatTanggalIndo(?string $date): string {
         return '-';
     }
     return (int) date('j', $ts) . ' ' . $bulan[(int) date('n', $ts)] . ' ' . date('Y', $ts);
+}
+
+function labelJenisPekerjaan(string $jenis): string {
+    $labels = [
+        'full_time' => 'Full Time',
+        'part_time' => 'Part Time',
+        'internship' => 'Internship',
+        'contract' => 'Contract'
+    ];
+    return $labels[$jenis] ?? 'Jenis pekerjaan';
+}
+
+function formatRentangGaji($minimum, $maksimum): string {
+    if ($minimum === null && $maksimum === null) {
+        return 'Gaji tidak dicantumkan';
+    }
+    $format = static function ($nilai): string {
+        return 'Rp ' . number_format((float) $nilai, 0, ',', '.');
+    };
+    if ($minimum !== null && $maksimum !== null) {
+        return $format($minimum) . ' – ' . $format($maksimum);
+    }
+    return $minimum !== null ? 'Mulai ' . $format($minimum) : 'Hingga ' . $format($maksimum);
 }
 
 function getNotifText(string $status): string {
@@ -374,6 +409,7 @@ body { background: #e9f0fb; }
                   <span class="rounded-md bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700"><?= htmlspecialchars($kategori, ENT_QUOTES, 'UTF-8') ?></span>
                 </div>
                 <p class="text-sm text-slate-500"><?= htmlspecialchars($perusahaan, ENT_QUOTES, 'UTF-8') ?></p>
+                <p class="mt-1 text-xs text-slate-500"><?= htmlspecialchars(labelJenisPekerjaan($job['employment_type']), ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars(formatRentangGaji($job['salary_min'], $job['salary_max']), ENT_QUOTES, 'UTF-8') ?></p>
                 <p class="mt-1 line-clamp-2 max-w-prose text-sm text-blue-900/70"><?= htmlspecialchars($job['description'], ENT_QUOTES, 'UTF-8') ?></p>
               </div>
               <div class="flex flex-col gap-3 sm:items-end">

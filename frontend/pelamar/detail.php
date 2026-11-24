@@ -56,18 +56,28 @@ if (!$app) {
 
 // 2. Tangani unduhan CV langsung jika diminta (?id=X&download=cv)
 if (isset($_GET['download']) && $_GET['download'] === 'cv' && !empty($app['cv_file_path'])) {
-    $relativePath = ltrim($app['cv_file_path'], '/\\');
-    $fullPath     = realpath(__DIR__ . '/../../' . $relativePath);
-    $baseDir      = realpath(__DIR__ . '/../../');
+    $relativePath = ltrim(str_replace('\\', '/', $app['cv_file_path']), '/');
+    $projectRoot  = realpath(__DIR__ . '/../../');
+    $fullPath     = $projectRoot ? realpath($projectRoot . DIRECTORY_SEPARATOR . $relativePath) : false;
 
-    if ($fullPath && $baseDir && strpos($fullPath, $baseDir) === 0 && is_file($fullPath)) {
-        $downloadName = $app['cv_original_name'] ?: basename($fullPath);
-        header('Content-Description: File Transfer');
-        header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="' . basename($downloadName) . '"');
-        header('Content-Length: ' . filesize($fullPath));
-        readfile($fullPath);
-        exit;
+    if (
+        $fullPath && $projectRoot &&
+        str_starts_with($fullPath, $projectRoot . DIRECTORY_SEPARATOR) &&
+        is_file($fullPath) && is_readable($fullPath)
+    ) {
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        if ($finfo->file($fullPath) === 'application/pdf') {
+            $downloadName = basename(str_replace('\\', '/', $app['cv_original_name'] ?: basename($fullPath)));
+            $safeAsciiName = preg_replace('/[^A-Za-z0-9._-]/', '_', $downloadName);
+            header('Content-Description: File Transfer');
+            header('Content-Type: application/pdf');
+            header('X-Content-Type-Options: nosniff');
+            header('Cache-Control: private, no-store, max-age=0');
+            header('Content-Disposition: attachment; filename="' . ($safeAsciiName ?: 'CV.pdf') . '"; filename*=UTF-8\'\'' . rawurlencode($downloadName));
+            header('Content-Length: ' . filesize($fullPath));
+            readfile($fullPath);
+            exit;
+        }
     }
 }
 

@@ -12,6 +12,15 @@ if (
 
 require_once __DIR__ . '/../../backend/admin/applications_data.php';
 
+$statusLabels = [
+    'submitted' => 'Dikirim',
+    'administrative_review' => 'Review Administrasi',
+    'interview' => 'Wawancara',
+    'accepted' => 'Diterima',
+    'rejected' => 'Ditolak',
+    'withdrawn' => 'Dibatalkan'
+];
+
 ?>
 
 <?php if (isset($_GET['pesan'])) : ?>
@@ -459,6 +468,28 @@ require_once __DIR__ . '/../../backend/admin/applications_data.php';
             background: #dbeafe;
         }
 
+        .btn-cv {
+            display: inline-block;
+            background: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+            padding: 8px 11px;
+            border-radius: 7px;
+            font-size: 11px;
+            font-weight: 600;
+            text-decoration: none;
+            margin: 2px 3px 2px 0;
+        }
+
+        .btn-cv:hover {
+            background: #d1fae5;
+        }
+
+        .cv-missing {
+            color: #94a3b8;
+            font-size: 11px;
+        }
+
         /* Modal */
 
         .modal {
@@ -705,6 +736,7 @@ require_once __DIR__ . '/../../backend/admin/applications_data.php';
                         <th>PELAMAR</th>
                         <th>POSISI</th>
                         <th>TANGGAL MELAMAR</th>
+                        <th>CV</th>
                         <th>STATUS</th>
                         <th>AKSI</th>
                     </tr>
@@ -714,21 +746,21 @@ require_once __DIR__ . '/../../backend/admin/applications_data.php';
                 
                 <tbody>
 
-                    <?php while ($data = mysqli_fetch_assoc($query_applications)) : ?>
+                    <?php foreach ($applications as $data) : ?>
 
-                        <tr data-status="<?= htmlspecialchars($data['status']) ?>">
+                        <tr data-status="<?= htmlspecialchars($data['status'], ENT_QUOTES, 'UTF-8') ?>">
 
                             <td>
                                 <span class="applicant">
-                                    <?= htmlspecialchars($data['nama_pelamar']) ?>
+                                    <?= htmlspecialchars($data['nama_pelamar'], ENT_QUOTES, 'UTF-8') ?>
                                 </span>
                                 <br>
-                                <?= htmlspecialchars($data['email_pelamar']) ?>
+                                <?= htmlspecialchars($data['email_pelamar'], ENT_QUOTES, 'UTF-8') ?>
                             </td>
 
                             <td>
                                 <span class="job-name">
-                                    <?= htmlspecialchars($data['nama_lowongan']) ?>
+                                    <?= htmlspecialchars($data['nama_lowongan'], ENT_QUOTES, 'UTF-8') ?>
                                 </span>
                             </td>
 
@@ -737,8 +769,17 @@ require_once __DIR__ . '/../../backend/admin/applications_data.php';
                             </td>
 
                             <td>
-                                <span class="status <?= htmlspecialchars($data['status']) ?>">
-                                    <?= htmlspecialchars($data['status']) ?>
+                                <?php if (!empty($data['cv_document_id'])) : ?>
+                                    <a class="btn-cv" href="../pelamar/cv.php?id=<?= (int) $data['id'] ?>" target="_blank" rel="noopener">Lihat CV</a>
+                                    <a class="btn-cv" href="../pelamar/cv.php?id=<?= (int) $data['id'] ?>&download=1">Unduh</a>
+                                <?php else : ?>
+                                    <span class="cv-missing">CV belum tersedia</span>
+                                <?php endif; ?>
+                            </td>
+
+                            <td>
+                                <span class="status <?= htmlspecialchars($data['status'], ENT_QUOTES, 'UTF-8') ?>">
+                                    <?= htmlspecialchars($statusLabels[$data['status']] ?? $data['status'], ENT_QUOTES, 'UTF-8') ?>
                                 </span>
                             </td>
 
@@ -753,90 +794,45 @@ require_once __DIR__ . '/../../backend/admin/applications_data.php';
 
                         </tr>
 
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
 
                 </tbody>
 
 
             </table>
 
-            <!-- Modal Update Status -->
-            <div class="modal" id="modal<?= (int) $data['id'] ?>">
+            <!-- Modal Update Status untuk masing-masing lamaran -->
+            <?php foreach ($applications as $data) : ?>
+                <div class="modal" id="modal<?= (int) $data['id'] ?>">
+                    <div class="modal-content">
+                        <h3>Update Status Lamaran</h3>
+                        <p>Pelamar: <strong><?= htmlspecialchars($data['nama_pelamar'], ENT_QUOTES, 'UTF-8') ?></strong></p>
 
-                <div class="modal-content">
+                        <form action="../../backend/admin/applications_update.php" method="POST">
+                            <input type="hidden" name="id" value="<?= (int) $data['id'] ?>">
+                            <label>Status Lamaran</label>
+                            <select name="status" required>
+                                <option value="submitted" <?= $data['status'] === 'submitted' ? 'selected' : '' ?>>Submitted</option>
+                                <option value="administrative_review" <?= $data['status'] === 'administrative_review' ? 'selected' : '' ?>>Administrative Review</option>
+                                <option value="interview" <?= $data['status'] === 'interview' ? 'selected' : '' ?>>Interview</option>
+                                <option value="accepted" <?= $data['status'] === 'accepted' ? 'selected' : '' ?>>Accepted</option>
+                                <option value="rejected" <?= $data['status'] === 'rejected' ? 'selected' : '' ?>>Rejected</option>
+                                <option value="withdrawn" <?= $data['status'] === 'withdrawn' ? 'selected' : '' ?>>Withdrawn</option>
+                            </select>
 
-                    <h3>Update Status Lamaran</h3>
+                            <label>Catatan Admin</label>
+                            <textarea name="admin_note" rows="4" placeholder="Masukkan catatan untuk pelamar..."><?= htmlspecialchars($data['admin_note'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
 
-                    <p>
-                        Pelamar:
-                        <strong><?= htmlspecialchars($data['nama_pelamar']) ?></strong>
-                    </p>
-
-                    <form
-                        action="../../backend/admin/applications_update.php"
-                        method="POST">
-
-                        <input
-                            type="hidden"
-                            name="id"
-                            value="<?= (int) $data['id'] ?>">
-
-                        <label>Status Lamaran</label>
-
-                        <select name="status" required>
-                            <option value="submitted" <?= $data['status'] == 'submitted' ? 'selected' : '' ?>>
-                                Submitted
-                            </option>
-
-                            <option value="administrative_review" <?= $data['status'] == 'administrative_review' ? 'selected' : '' ?>>
-                                Administrative Review
-                            </option>
-
-                            <option value="interview" <?= $data['status'] == 'interview' ? 'selected' : '' ?>>
-                                Interview
-                            </option>
-
-                            <option value="accepted" <?= $data['status'] == 'accepted' ? 'selected' : '' ?>>
-                                Accepted
-                            </option>
-
-                            <option value="rejected" <?= $data['status'] == 'rejected' ? 'selected' : '' ?>>
-                                Rejected
-                            </option>
-
-                            <option value="withdrawn" <?= $data['status'] == 'withdrawn' ? 'selected' : '' ?>>
-                                Withdrawn
-                            </option>
-                        </select>
-
-                        <label>Catatan Admin</label>
-
-                        <textarea
-                            name="admin_note"
-                            rows="4"
-                            placeholder="Masukkan catatan untuk pelamar..."><?= htmlspecialchars($data['admin_note'] ?? '') ?></textarea>
-
-                        <div class="modal-actions">
-
-                            <button type="button"
-                                class="btn-cancel"
-                                onclick="document.getElementById('modal<?= (int) $data['id'] ?>').style.display='none'">
-                                Batal
-                            </button>
-
-                            <button type="submit" class="btn-save">
-                                Simpan Perubahan
-                            </button>
-
-                        </div>
-
-                    </form>
-
+                            <div class="modal-actions">
+                                <button type="button" class="btn-cancel" onclick="document.getElementById('modal<?= (int) $data['id'] ?>').style.display='none'">Batal</button>
+                                <button type="submit" class="btn-save">Simpan Perubahan</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-
-            </div>
-            <div id="emptyMessage" class="empty" style="display:none">
-                Data lamaran tidak ditemukan.
+            <?php endforeach; ?>
+            <div id="emptyMessage" class="empty" style="<?= empty($applications) ? '' : 'display:none' ?>">
+                <?= empty($applications) ? 'Belum ada lamaran yang masuk.' : 'Data lamaran tidak ditemukan.' ?>
             </div>
 
         </section>

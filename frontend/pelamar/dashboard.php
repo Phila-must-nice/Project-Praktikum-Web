@@ -75,8 +75,39 @@ $stmtLatest->execute();
 $latestApplications = $stmtLatest->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmtLatest->close();
 
+// 4. Ambil lowongan terbaru yang benar-benar tersedia untuk pelamar.
+// Lowongan draft/closed dan lowongan yang sudah melewati deadline tidak ditampilkan.
+$sqlLatestJobs = "
+    SELECT
+        j.id,
+        j.title,
+        j.category,
+        j.employment_type,
+        j.location,
+        j.description,
+        j.salary_min,
+        j.salary_max,
+        j.deadline,
+        a.id AS application_id
+    FROM jobs j
+    LEFT JOIN applications a
+        ON a.job_id = j.id AND a.applicant_id = ?
+    WHERE j.status = 'published'
+      AND (j.deadline IS NULL OR j.deadline >= CURDATE())
+    ORDER BY j.created_at DESC, j.id DESC
+    LIMIT 3
+";
+$stmtLatestJobs = $conn->prepare($sqlLatestJobs);
+$stmtLatestJobs->bind_param("i", $applicant_id);
+$stmtLatestJobs->execute();
+$latestJobs = $stmtLatestJobs->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmtLatestJobs->close();
+
 // Helper format tanggal singkat Indonesia (contoh: 1 Jun 2025)
-function formatTanggalIndo(string $datetime): string {
+function formatTanggalIndo(?string $datetime): string {
+    if (empty($datetime)) {
+        return 'Tanpa batas waktu';
+    }
     $bulan = [
         1 => 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
         'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
@@ -89,6 +120,29 @@ function formatTanggalIndo(string $datetime): string {
     $bln = $bulan[(int) date('n', $ts)];
     $thn = date('Y', $ts);
     return "{$tgl} {$bln} {$thn}";
+}
+
+function labelJenisPekerjaan(string $jenis): string {
+    $labels = [
+        'full_time' => 'Full Time',
+        'part_time' => 'Part Time',
+        'internship' => 'Internship',
+        'contract' => 'Contract'
+    ];
+    return $labels[$jenis] ?? 'Jenis pekerjaan';
+}
+
+function formatRentangGaji($minimum, $maksimum): string {
+    if ($minimum === null && $maksimum === null) {
+        return 'Gaji tidak dicantumkan';
+    }
+    $format = static function ($nilai): string {
+        return 'Rp ' . number_format((float) $nilai, 0, ',', '.');
+    };
+    if ($minimum !== null && $maksimum !== null) {
+        return $format($minimum) . ' – ' . $format($maksimum);
+    }
+    return $minimum !== null ? 'Mulai ' . $format($minimum) : 'Hingga ' . $format($maksimum);
 }
 
 // Helper pemetaan status ENUM database ke label & warna badge UI
@@ -265,6 +319,55 @@ body { background: #e9f0fb; }
           <p class="mt-3 text-sm text-slate-600">Diterima</p>
           <p class="text-3xl font-bold text-slate-900"><?= $diterima ?></p>
         </div>
+      </section>
+
+      <!-- Lowongan terbaru yang dipublikasikan admin -->
+      <section class="mt-6" aria-label="Lowongan terbaru">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="font-semibold text-slate-900">Lowongan Terbaru</h2>
+            <p class="mt-1 text-sm text-slate-500">Lowongan aktif yang dipublikasikan oleh admin.</p>
+          </div>
+          <a href="lowongan.php" class="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:underline">Lihat semua lowongan <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg></a>
+        </div>
+
+        <?php if (empty($latestJobs)): ?>
+          <div class="card p-6 text-center">
+            <p class="font-medium text-slate-800">Belum ada lowongan aktif</p>
+            <p class="mt-1 text-sm text-slate-500">Lowongan yang dipublikasikan admin akan muncul di sini.</p>
+          </div>
+        <?php else: ?>
+          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <?php foreach ($latestJobs as $job):
+              $kategoriJob = $job['category'] ?: 'Umum';
+              $lokasiJob = $job['location'] ?: 'Lokasi tidak dicantumkan';
+              $sudahMelamar = !empty($job['application_id']);
+              $deskripsiJob = trim(strip_tags($job['description'] ?? ''));
+              if (mb_strlen($deskripsiJob) > 145) {
+                  $deskripsiJob = mb_substr($deskripsiJob, 0, 142) . '…';
+              }
+            ?>
+              <article class="card flex h-full flex-col p-5">
+                <div class="flex items-start justify-between gap-3">
+                  <span class="rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700"><?= htmlspecialchars($kategoriJob, ENT_QUOTES, 'UTF-8') ?></span>
+                  <span class="text-xs font-medium text-slate-500"><?= htmlspecialchars(labelJenisPekerjaan($job['employment_type']), ENT_QUOTES, 'UTF-8') ?></span>
+                </div>
+                <h3 class="mt-3 font-semibold text-slate-900"><?= htmlspecialchars($job['title'], ENT_QUOTES, 'UTF-8') ?></h3>
+                <p class="mt-1 text-sm text-slate-500"><?= htmlspecialchars($lokasiJob, ENT_QUOTES, 'UTF-8') ?></p>
+                <p class="mt-3 flex-1 text-sm leading-6 text-slate-600"><?= htmlspecialchars($deskripsiJob, ENT_QUOTES, 'UTF-8') ?></p>
+                <div class="mt-4 space-y-1 border-t border-slate-100 pt-3 text-xs text-slate-500">
+                  <p><?= htmlspecialchars(formatRentangGaji($job['salary_min'], $job['salary_max']), ENT_QUOTES, 'UTF-8') ?></p>
+                  <p>Deadline: <?= htmlspecialchars(formatTanggalIndo($job['deadline']), ENT_QUOTES, 'UTF-8') ?></p>
+                </div>
+                <?php if ($sudahMelamar): ?>
+                  <a href="detail.php?id=<?= (int) $job['application_id'] ?>" class="btn-outline mt-4 w-full">Lihat status lamaran</a>
+                <?php else: ?>
+                  <a href="lowongan.php" class="btn-primary mt-4 w-full">Lihat & lamar lowongan</a>
+                <?php endif; ?>
+              </article>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
       </section>
 
       <!-- 2 Lamaran Terbaru -->
