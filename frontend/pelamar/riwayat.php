@@ -1,0 +1,340 @@
+<?php
+session_start();
+
+if (
+    !isset($_SESSION['user_id']) ||
+    $_SESSION['user_role'] !== 'pelamar'
+) {
+    header("Location: ../login.php");
+    exit;
+}
+
+require '../../backend/connection.php';
+
+$applicant_id = (int) $_SESSION['user_id'];
+
+// 1. Ambil data profil pelamar untuk topbar
+$stmtUser = $conn->prepare("SELECT name, email FROM users WHERE id = ? LIMIT 1");
+$stmtUser->bind_param("i", $applicant_id);
+$stmtUser->execute();
+$user = $stmtUser->get_result()->fetch_assoc();
+$stmtUser->close();
+
+$namaUser  = $user['name'] ?? 'Pelamar';
+$emailUser = $user['email'] ?? '';
+
+$kataNama = preg_split('/\s+/', trim($namaUser));
+$inisial  = '';
+foreach (array_slice($kataNama, 0, 2) as $kata) {
+    $inisial .= mb_strtoupper(mb_substr($kata, 0, 1));
+}
+if ($inisial === '') {
+    $inisial = 'PL';
+}
+
+// 2. Ambil seluruh riwayat lamaran milik pelamar (mysqli list)
+$sqlRiwayat = "
+    SELECT 
+        a.id,
+        a.applied_at,
+        a.status,
+        j.title AS job_title,
+        j.location AS job_location
+    FROM applications a
+    INNER JOIN jobs j ON a.job_id = j.id
+    WHERE a.applicant_id = ?
+    ORDER BY a.applied_at DESC, a.id DESC
+";
+$stmtRiwayat = $conn->prepare($sqlRiwayat);
+$stmtRiwayat->bind_param("i", $applicant_id);
+$stmtRiwayat->execute();
+$applications = $stmtRiwayat->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmtRiwayat->close();
+
+// 2 lamaran terbaru untuk dropdown notifikasi topbar
+$latestApplications = array_slice($applications, 0, 2);
+
+function formatTanggalIndo(string $datetime): string {
+    $bulan = [
+        1 => 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    $ts = strtotime($datetime);
+    if (!$ts) {
+        return '-';
+    }
+    return (int) date('j', $ts) . ' ' . $bulan[(int) date('n', $ts)] . ' ' . date('Y', $ts);
+}
+
+function getStatusMeta(string $status): array {
+    switch ($status) {
+        case 'accepted':
+            return [
+                'grup'  => 'diterima',
+                'label' => 'Diterima',
+                'class' => 'bg-emerald-100 text-emerald-700',
+                'notif' => 'Selamat, lamaran Anda diterima'
+            ];
+        case 'rejected':
+            return [
+                'grup'  => 'ditolak',
+                'label' => 'Ditolak',
+                'class' => 'bg-rose-100 text-rose-700',
+                'notif' => 'Mohon maaf, lamaran Anda belum lolos'
+            ];
+        case 'withdrawn':
+            return [
+                'grup'  => 'dibatalkan',
+                'label' => 'Dibatalkan',
+                'class' => 'bg-slate-200 text-slate-700',
+                'notif' => 'Lamaran telah dibatalkan'
+            ];
+        case 'interview':
+            return [
+                'grup'  => 'proses',
+                'label' => 'Sedang Diproses',
+                'class' => 'bg-blue-100 text-blue-700',
+                'notif' => 'Anda masuk tahap wawancara'
+            ];
+        case 'administrative_review':
+            return [
+                'grup'  => 'proses',
+                'label' => 'Sedang Diproses',
+                'class' => 'bg-blue-100 text-blue-700',
+                'notif' => 'Lamaran sedang ditinjau admin'
+            ];
+        case 'submitted':
+        default:
+            return [
+                'grup'  => 'proses',
+                'label' => 'Sedang Diproses',
+                'class' => 'bg-blue-100 text-blue-700',
+                'notif' => 'Lamaran terkirim, menunggu tinjauan admin'
+            ];
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Riwayat Lamaran | TalentTrack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+      colors: { navy: { 800: '#102a6b', 900: '#0b1f55' } }
+    } }
+  };
+</script>
+<style>
+/* ===== Gaya bersama (sama di semua page pelamar) ===== */
+body { background: #e9f0fb; }
+.card { background: #fff; border: 1px solid #dfe8f6; border-radius: 1rem; box-shadow: 0 8px 24px -12px rgba(16, 42, 107, .18); }
+.nav-item { display: flex; align-items: center; gap: .75rem; padding: .7rem .9rem; border-radius: .65rem; font-size: .875rem; font-weight: 500; color: #c3d2f3; transition: background .15s, color .15s; }
+.nav-item:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+.nav-item.active { background: #1d4ed8; color: #fff; }
+.btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; background: #1d4ed8; color: #fff; font-weight: 600; font-size: .875rem; padding: .6rem 1rem; border-radius: .6rem; transition: background .15s; }
+.btn-primary:hover { background: #1e40af; }
+.btn-primary:disabled { background: #93aee8; cursor: not-allowed; }
+.btn-outline { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; background: #fff; color: #1d4ed8; border: 1px solid #bcd0f5; font-weight: 600; font-size: .875rem; padding: .55rem 1rem; border-radius: .6rem; transition: background .15s; }
+.btn-outline:hover { background: #eff6ff; }
+.field { width: 100%; border: 1px solid #d5e0f3; border-radius: .6rem; padding: .6rem .85rem; font-size: .875rem; background: #fff; transition: border-color .15s, box-shadow .15s; }
+.field:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, .18); }
+:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body class="font-sans text-slate-800 antialiased">
+
+<div class="min-h-screen lg:flex">
+  <div id="overlay" class="fixed inset-0 z-30 hidden bg-slate-900/50 lg:hidden"></div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed left-0 top-0 z-40 flex h-screen w-64 shrink-0 -translate-x-full flex-col gap-4 p-4 transition-transform lg:sticky lg:translate-x-0">
+    <a href="dashboard.php" class="flex items-center gap-2.5 px-1 pt-1">
+      <svg viewBox="0 0 32 32" class="h-9 w-9" aria-hidden="true">
+        <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs>
+        <rect width="32" height="32" rx="9" fill="url(#lg)"/>
+        <path d="M8 9.5h16v4.2h-5.9V24h-4.2V13.7H8z" fill="#fff"/>
+      </svg>
+      <span class="text-lg font-bold tracking-tight text-navy-800">TalentTrack</span>
+    </a>
+    <nav class="flex flex-1 flex-col rounded-2xl bg-navy-900 p-3" aria-label="Menu pelamar">
+      <div class="flex flex-col gap-1">
+        <a href="dashboard.php" class="nav-item "><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg> Dashboard</a>
+        <a href="lowongan.php" class="nav-item "><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z"/></svg> Lowongan</a>
+        <a href="riwayat.php" class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg> Riwayat Lamaran</a>
+        <a href="profil.php" class="nav-item "><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg> Profil</a>
+      </div>
+      <a href="../../backend/logout.php" class="nav-item mt-auto"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg> Keluar</a>
+    </nav>
+  </aside>
+
+  <div class="flex min-w-0 flex-1 flex-col">
+    <!-- Topbar -->
+    <header class="flex h-16 items-center justify-between px-4 lg:px-8">
+      <button id="btnMenu" type="button" class="-ml-2 rounded-lg p-2 text-slate-600 hover:bg-white/70 lg:hidden" aria-label="Buka menu"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg></button>
+      <div class="ml-auto flex items-center gap-2">
+        <div class="relative">
+          <button type="button" data-dropdown="panelNotif" class="relative rounded-full p-2 text-slate-600 hover:bg-white/70" aria-label="Notifikasi">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+            <?php if (!empty($latestApplications)): ?>
+              <span class="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-[#e9f0fb]"></span>
+            <?php endif; ?>
+          </button>
+          <div id="panelNotif" class="dropdown-panel card absolute right-0 z-20 mt-2 hidden w-80 max-w-[calc(100vw-2rem)] p-2">
+            <p class="px-3 py-2 text-sm font-semibold text-slate-900">Status lamaran terbaru</p>
+            <?php if (empty($latestApplications)): ?>
+              <p class="px-3 py-2 text-xs text-slate-500">Belum ada pembaruan status lamaran.</p>
+            <?php else: ?>
+              <?php foreach ($latestApplications as $notifItem): 
+                $meta = getStatusMeta($notifItem['status']);
+              ?>
+                <a href="detail.php?id=<?= (int) $notifItem['id'] ?>" class="block rounded-lg px-3 py-2 hover:bg-slate-50">
+                  <span class="block truncate text-sm font-medium text-slate-800"><?= htmlspecialchars($notifItem['job_title'], ENT_QUOTES, 'UTF-8') ?></span>
+                  <span class="block text-xs text-slate-500"><?= htmlspecialchars($meta['notif'], ENT_QUOTES, 'UTF-8') ?></span>
+                </a>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </div>
+        </div>
+        <div class="relative">
+          <button type="button" data-dropdown="panelUser" class="flex items-center gap-1.5 rounded-full p-1 pr-2 hover:bg-white/70" aria-label="Menu akun">
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white"><?= htmlspecialchars($inisial, ENT_QUOTES, 'UTF-8') ?></span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-4 h-4 text-slate-500" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+          </button>
+          <div id="panelUser" class="dropdown-panel card absolute right-0 z-20 mt-2 hidden w-56 p-2">
+            <div class="px-3 py-2">
+              <p class="truncate text-sm font-semibold text-slate-900"><?= htmlspecialchars($namaUser, ENT_QUOTES, 'UTF-8') ?></p>
+              <p class="truncate text-xs text-slate-500"><?= htmlspecialchars($emailUser, ENT_QUOTES, 'UTF-8') ?></p>
+            </div>
+            <a href="profil.php" class="block rounded-lg px-3 py-2 text-sm hover:bg-slate-50">Profil saya</a>
+            <a href="../../backend/logout.php" class="block rounded-lg px-3 py-2 text-sm text-rose-600 hover:bg-rose-50">Keluar</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 px-4 pb-10 lg:px-8">
+
+      <section class="pt-2">
+        <h1 class="text-2xl font-bold text-slate-900">Riwayat Lamaran</h1>
+        <p class="mt-1 text-sm text-slate-500">Daftar seluruh lamaran pekerjaan Anda.</p>
+      </section>
+
+      <div class="mt-5 flex flex-col gap-3 sm:flex-row">
+        <div class="relative flex-1">
+          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-4 h-4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg></span>
+          <input type="search" id="cari" placeholder="Cari posisi atau perusahaan…" class="field pl-9" aria-label="Cari lamaran">
+        </div>
+        <select id="filterStatus" class="field sm:w-52" aria-label="Filter status">
+          <option value="">Semua status</option>
+          <option value="proses">Sedang Diproses</option>
+          <option value="diterima">Diterima</option>
+          <option value="ditolak">Ditolak</option>
+          <option value="dibatalkan">Dibatalkan</option>
+        </select>
+      </div>
+
+      <div class="card mt-4 overflow-x-auto">
+        <table class="w-full min-w-[640px] text-left text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-600">
+              <th class="px-5 py-3 font-semibold">No</th>
+              <th class="px-5 py-3 font-semibold">Posisi</th>
+              <th class="px-5 py-3 font-semibold">Perusahaan</th>
+              <th class="px-5 py-3 font-semibold">Tanggal Melamar</th>
+              <th class="px-5 py-3 font-semibold">Status</th>
+              <th class="px-5 py-3 font-semibold">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php if (empty($applications)): ?>
+              <tr>
+                <td colspan="6" class="px-5 py-10 text-center text-slate-500">
+                  Anda belum memiliki riwayat lamaran. <a href="lowongan.php" class="font-semibold text-blue-700 hover:underline">Cari lowongan sekarang</a>.
+                </td>
+              </tr>
+            <?php else: ?>
+              <?php foreach ($applications as $idx => $app): 
+                $meta = getStatusMeta($app['status']);
+                $perusahaan = !empty($app['job_location']) ? 'PT Talent Nusantara • ' . $app['job_location'] : 'PT Talent Nusantara';
+                $teksCari = mb_strtolower($app['job_title'] . ' ' . $perusahaan);
+              ?>
+                <tr class="baris border-b border-slate-100 last:border-b-0" data-grup="<?= htmlspecialchars($meta['grup'], ENT_QUOTES, 'UTF-8') ?>" data-teks="<?= htmlspecialchars($teksCari, ENT_QUOTES, 'UTF-8') ?>">
+                  <td class="nomor px-5 py-3.5 text-slate-500"><?= $idx + 1 ?></td>
+                  <td class="px-5 py-3.5 font-medium text-slate-900"><?= htmlspecialchars($app['job_title'], ENT_QUOTES, 'UTF-8') ?></td>
+                  <td class="px-5 py-3.5 text-slate-700"><?= htmlspecialchars($perusahaan, ENT_QUOTES, 'UTF-8') ?></td>
+                  <td class="px-5 py-3.5 text-slate-700"><?= formatTanggalIndo($app['applied_at']) ?></td>
+                  <td class="px-5 py-3.5"><span class="rounded-full px-3 py-1 text-xs font-semibold <?= $meta['class'] ?>"><?= htmlspecialchars($meta['label'], ENT_QUOTES, 'UTF-8') ?></span></td>
+                  <td class="px-5 py-3.5"><a href="detail.php?id=<?= (int) $app['id'] ?>" class="inline-flex items-center gap-1 font-semibold text-blue-700 hover:underline">Lihat detail <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg></a></td>
+                </tr>
+              <?php endforeach; ?>
+              <tr id="barisKosong" class="hidden"><td colspan="6" class="px-5 py-10 text-center text-slate-500">Tidak ada lamaran yang cocok dengan filter.</td></tr>
+            <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+/* ===== Skrip bersama ===== */
+const $ = (s) => document.querySelector(s);
+const sidebar = $('#sidebar'), overlay = $('#overlay');
+function bukaSidebar(buka) {
+  sidebar.classList.toggle('-translate-x-full', !buka);
+  overlay.classList.toggle('hidden', !buka);
+}
+$('#btnMenu').addEventListener('click', () => bukaSidebar(true));
+overlay.addEventListener('click', () => bukaSidebar(false));
+
+function tutupDropdown() { document.querySelectorAll('.dropdown-panel').forEach((p) => p.classList.add('hidden')); }
+document.querySelectorAll('[data-dropdown]').forEach((btn) => {
+  btn.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    const panel = document.getElementById(btn.dataset.dropdown);
+    const sudahBuka = !panel.classList.contains('hidden');
+    tutupDropdown();
+    if (!sudahBuka) panel.classList.remove('hidden');
+  });
+});
+document.addEventListener('click', (ev) => { if (!ev.target.closest('.dropdown-panel')) tutupDropdown(); });
+
+function tampilToast(pesan, jenis) {
+  const el = document.createElement('div');
+  el.setAttribute('role', 'status');
+  el.className = 'fixed top-4 right-4 z-[60] max-w-sm rounded-xl px-4 py-3 text-sm font-medium text-white shadow-lg transition duration-300 ' + (jenis === 'error' ? 'bg-rose-600' : 'bg-emerald-600');
+  el.textContent = pesan;
+  document.body.appendChild(el);
+  setTimeout(() => el.classList.add('opacity-0'), 3500);
+  setTimeout(() => el.remove(), 3900);
+}
+
+/* ===== Skrip khusus page ini ===== */
+const cari = $('#cari'), filterStatus = $('#filterStatus'), barisKosong = $('#barisKosong');
+const baris = [...document.querySelectorAll('.baris')];
+function terapkanFilter() {
+  if (!barisKosong) return;
+  const kata = cari.value.trim().toLowerCase();
+  const grup = filterStatus.value;
+  let tampil = 0;
+  baris.forEach((tr) => {
+    const cocok = (!kata || tr.dataset.teks.includes(kata)) && (!grup || tr.dataset.grup === grup);
+    tr.classList.toggle('hidden', !cocok);
+    if (cocok) { tampil++; tr.querySelector('.nomor').textContent = tampil; }
+  });
+  barisKosong.classList.toggle('hidden', tampil > 0);
+}
+cari.addEventListener('input', terapkanFilter);
+filterStatus.addEventListener('change', terapkanFilter);
+</script>
+</body>
+</html>
