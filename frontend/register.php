@@ -1,6 +1,5 @@
 <?php
 include "../backend/connection.php";
-
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
   $name = trim($_POST["name"] ?? "");
   $email = trim($_POST["email"] ?? "");
@@ -145,17 +144,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       width: 100%;
       max-width: 420px;
       padding: 30px 0;
-    }
-
-    /* Logo */
-    .auth-logo {
-      margin-bottom: 35px;
-    }
-
-    .auth-logo img {
-      max-width: 150px;
-      max-height: 65px;
-      object-fit: contain;
     }
 
     /* Heading */
@@ -326,10 +314,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <main class="auth-register">
 
       <div class="auth-form">
-
-        <div class="auth-logo">
-          <img src="assets/images/company.jpg" alt="Company Logo">
-        </div>
 
         <h2>Create Account</h2>
 

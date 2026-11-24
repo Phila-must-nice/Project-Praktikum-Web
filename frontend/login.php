@@ -305,10 +305,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <div class="auth-form">
 
-        <div class="auth-logo">
-          <img src="assets/images/company.jpg" alt="Company Logo">
-        </div>
-
         <h2>Welcome Back!</h2>
 
         <p class="auth-description">
