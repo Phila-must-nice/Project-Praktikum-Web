@@ -45,7 +45,6 @@ CREATE TABLE IF NOT EXISTS applicant_profiles (
 CREATE TABLE IF NOT EXISTS jobs (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(150) NOT NULL,
-    slug VARCHAR(180) NOT NULL UNIQUE,
     category VARCHAR(100) NULL,
     employment_type ENUM('full_time', 'part_time', 'internship', 'contract')
         NOT NULL DEFAULT 'full_time',

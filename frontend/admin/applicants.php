@@ -1,7 +1,4 @@
-
 <?php
-// Frontend Applicants - TalentTrack
-// Data masih dummy, hubungkan dengan backend nantinya.
 
 session_start();
 
@@ -12,6 +9,9 @@ if (
     header("Location: ../login.php");
     exit;
 }
+
+require_once __DIR__ . '/../../backend/admin/applicants_data.php';
+
 ?>
 
 <!DOCTYPE html>
@@ -408,7 +408,7 @@ if (
         <div class="menu-title">AKUN</div>
 
         <nav class="menu">
-            <a href="../logout.php">
+            <a href="../../backend/logout.php">
                 <span class="menu-icon">⇥</span>
                 <span>Logout</span>
             </a>
@@ -447,33 +447,18 @@ if (
         <section class="stats">
 
             <div class="stat-card">
-
-                <div class="stat-icon">♙</div>
-
                 <p>Total Pelamar</p>
-
-                <h2>124</h2>
-
+                <h2><?= $total_applicants ?></h2>
             </div>
 
             <div class="stat-card">
-
-                <div class="stat-icon">✉</div>
-
-                <p>Pelamar Memiliki Lamaran</p>
-
-                <h2>98</h2>
-
+                <p>Profil Lengkap</p>
+                <h2><?= $complete_applicants ?></h2>
             </div>
 
             <div class="stat-card">
-
-                <div class="stat-icon">＋</div>
-
-                <p>Pelamar Terbaru</p>
-
-                <h2>12</h2>
-
+                <p>Profil Belum Lengkap</p>
+                <h2><?= $incomplete_applicants ?></h2>
             </div>
 
         </section>
@@ -525,125 +510,37 @@ if (
 
                 <tbody>
 
-                    <tr data-education="S1">
+                    <?php while ($data = mysqli_fetch_assoc($query_applicants)) : ?>
 
-                        <td class="applicant">
-                            Aditya Pratama
-                        </td>
+                        <tr data-education="<?= htmlspecialchars($data['education_level'] ?? '') ?>">>
+                            <td>
+                                <?= htmlspecialchars($data['name']) ?>
+                            </td>
 
-                        <td class="email">
-                            aditya@example.com
-                        </td>
+                            <td>
+                                <?= htmlspecialchars($data['email']) ?>
+                            </td>
 
-                        <td>0812-3456-7890</td>
+                            <td>
+                                <?= htmlspecialchars($data['phone'] ?? '-') ?>
+                            </td>
 
-                        <td>S1</td>
+                            <td>
+                                <?= htmlspecialchars($data['education_level'] ?? '-') ?>
+                            </td>
 
-                        <td>20/11/2026</td>
+                            <td>
+                                <?= date('d/m/Y', strtotime($data['created_at'])) ?>
+                            </td>
 
-                        <td>
-                            <a href="#" class="action" onclick="return showNotice()">
-                                Detail
-                            </a>
-                        </td>
+                            <td>
+                                <a href="applicants_detail.php?id=<?= (int) $data['id'] ?>">
+                                    Lihat Detail
+                                </a>
+                            </td>
+                        </tr>
 
-                    </tr>
-
-                    <tr data-education="D3">
-
-                        <td class="applicant">
-                            Nadia Putri
-                        </td>
-
-                        <td class="email">
-                            nadia@example.com
-                        </td>
-
-                        <td>0813-4567-8901</td>
-
-                        <td>D3</td>
-
-                        <td>19/11/2026</td>
-
-                        <td>
-                            <a href="#" class="action" onclick="return showNotice()">
-                                Detail
-                            </a>
-                        </td>
-
-                    </tr>
-
-                    <tr data-education="S1">
-
-                        <td class="applicant">
-                            Rizky Ramadhan
-                        </td>
-
-                        <td class="email">
-                            rizky@example.com
-                        </td>
-
-                        <td>0821-2345-6789</td>
-
-                        <td>S1</td>
-
-                        <td>18/11/2026</td>
-
-                        <td>
-                            <a href="#" class="action" onclick="return showNotice()">
-                                Detail
-                            </a>
-                        </td>
-
-                    </tr>
-
-                    <tr data-education="SMA/SMK">
-
-                        <td class="applicant">
-                            Siti Rahma
-                        </td>
-
-                        <td class="email">
-                            siti@example.com
-                        </td>
-
-                        <td>0857-1234-5678</td>
-
-                        <td>SMA/SMK</td>
-
-                        <td>17/11/2026</td>
-
-                        <td>
-                            <a href="#" class="action" onclick="return showNotice()">
-                                Detail
-                            </a>
-                        </td>
-
-                    </tr>
-
-                    <tr data-education="S1">
-
-                        <td class="applicant">
-                            Fajar Maulana
-                        </td>
-
-                        <td class="email">
-                            fajar@example.com
-                        </td>
-
-                        <td>0819-8765-4321</td>
-
-                        <td>S1</td>
-
-                        <td>15/11/2026</td>
-
-                        <td>
-                            <a href="#" class="action" onclick="return showNotice()">
-                                Detail
-                            </a>
-                        </td>
-
-                    </tr>
+                    <?php endwhile; ?>
 
                 </tbody>
 

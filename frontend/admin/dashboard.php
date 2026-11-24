@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/../../backend/connection.php';
 session_start();
 
 if (
@@ -10,13 +9,7 @@ if (
     exit;
 }
 
-$id_admin = $_SESSION['user_id'];
-
-$query_admin = mysqli_query($conn, "
-    SELECT * FROM users WHERE id = '$id_admin'
-");
-
-$data_admin = mysqli_fetch_assoc($query_admin);
+require_once __DIR__ . '/../../backend/admin/dashboard_data.php';
 ?>
 
 <!DOCTYPE html>
@@ -453,7 +446,7 @@ $data_admin = mysqli_fetch_assoc($query_admin);
         <div class="menu-title">AKUN</div>
 
         <nav class="menu">
-            <a href="../logout.php">
+            <a href="../../backend/logout.php">
                 <span class="menu-icon">⇥</span>
                 <span>Logout</span>
             </a>
@@ -511,7 +504,7 @@ $data_admin = mysqli_fetch_assoc($query_admin);
                 <div class="stat-top">
                     <div>
                         <p>Total Pelamar</p>
-                        <h2><?php echo $pelamar['total']; ?></h2>
+                        <h2><?php echo $pelamar; ?></h2>
                     </div>
                     <div class="stat-icon blue">♙</div>
                 </div>
@@ -521,7 +514,7 @@ $data_admin = mysqli_fetch_assoc($query_admin);
                 <div class="stat-top">
                     <div>
                         <p>Lowongan Aktif</p>
-                        <h2><?php echo $lowongan['total']; ?></h2>
+                        <h2><?php echo $lowongan; ?></h2>
                     </div>
                     <div class="stat-icon green">▤</div>
                 </div>
@@ -531,7 +524,7 @@ $data_admin = mysqli_fetch_assoc($query_admin);
                 <div class="stat-top">
                     <div>
                         <p>Total Lamaran</p>
-                        <h2><?php echo $lamaran['total']; ?></h2>
+                        <h2><?php echo $lamaran; ?></h2>
                     </div>
                     <div class="stat-icon purple">▣</div>
                 </div>
@@ -541,7 +534,7 @@ $data_admin = mysqli_fetch_assoc($query_admin);
                 <div class="stat-top">
                     <div>
                         <p>Menunggu Review</p>
-                        <h2><?php echo $review['total']; ?></h2>
+                        <h2><?php echo $review; ?></h2>
                     </div>
                     <div class="stat-icon orange">◷</div>
                 </div>

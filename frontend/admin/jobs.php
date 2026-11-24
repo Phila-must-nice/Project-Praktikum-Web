@@ -1,7 +1,4 @@
-
 <?php
-// Frontend Jobs - TalentTrack
-// Data masih dummy, silakan hubungkan dengan backend.
 
 session_start();
 
@@ -12,7 +9,24 @@ if (
     header("Location: ../login.php");
     exit;
 }
+
+require_once __DIR__ . '/../../backend/admin/jobs_data.php';
+
 ?>
+
+<?php if (isset($_GET['pesan'])) : ?>
+
+    <?php if ($_GET['pesan'] == 'dihapus') : ?>
+        <p>Lowongan berhasil dihapus.</p>
+
+    <?php elseif ($_GET['pesan'] == 'memiliki_lamaran') : ?>
+        <p>Lowongan tidak bisa dihapus karena sudah memiliki lamaran.</p>
+
+    <?php elseif ($_GET['pesan'] == 'gagal_hapus') : ?>
+        <p>Gagal menghapus lowongan.</p>
+    <?php endif; ?>
+
+<?php endif; ?>
 
 <!DOCTYPE html>
 <html lang="id">
@@ -22,7 +36,7 @@ if (
     <title>Lowongan Pekerjaan | TalentTrack</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -371,16 +385,198 @@ if (
             }
         }
 
-        @media(max-width: 480px) {
-            .stats {
+        
+        /* MODAL TAMBAH LOWONGAN */
+        #modalTambah .modal-dialog {
+            max-width: 750px;
+        }
+
+        #modalTambah .modal-content {
+            border: none;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+        }
+
+        #modalTambah .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 22px 26px;
+            border-bottom: 1px solid #e5e7eb;
+            background: white;
+        }
+
+        #modalTambah .modal-title {
+            font-size: 19px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        #modalTambah .btn-close {
+            margin-left: auto;
+            padding: 10px;
+            border: none;
+            background-color: transparent;
+            opacity: 0.6;
+            cursor: pointer;
+            box-shadow: none;
+        }
+
+        #modalTambah .btn-close:hover {
+            opacity: 1;
+        }
+
+        #modalTambah .modal-body {
+            padding: 25px 26px;
+            background: white;
+        }
+
+        /* FORM */
+        #modalTambah .job-form {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+        }
+
+        #modalTambah .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        #modalTambah .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        #modalTambah .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            margin: 0;
+        }
+
+        #modalTambah .form-group input,
+        #modalTambah .form-group select,
+        #modalTambah .form-group textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            color: #334155;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        #modalTambah .form-group input:focus,
+        #modalTambah .form-group select:focus,
+        #modalTambah .form-group textarea:focus {
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        #modalTambah .form-group textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        #modalTambah .btn-submit {
+            grid-column: 1 / -1;
+            padding: 13px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        #modalTambah .btn-submit:hover {
+            background: #1d4ed8;
+        }
+
+        @media (max-width: 600px) {
+            #modalTambah .job-form {
                 grid-template-columns: 1fr;
             }
 
-            .table-header {
-                align-items: flex-start;
-                flex-direction: column;
+            #modalTambah .form-group.full-width,
+            #modalTambah .btn-submit {
+                grid-column: 1;
             }
         }
+        [id^="modalEdit"] .modal-dialog {
+            max-width: 750px;
+        }
+
+        [id^="modalEdit"] .modal-content {
+            border: none;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        [id^="modalEdit"] .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 22px 26px;
+        }
+
+        [id^="modalEdit"] .modal-body {
+            padding: 25px 26px;
+        }
+
+        [id^="modalEdit"] .job-form {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+        }
+
+        [id^="modalEdit"] .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        [id^="modalEdit"] .form-group.full-width,
+        [id^="modalEdit"] .btn-submit {
+            grid-column: 1 / -1;
+        }
+
+        [id^="modalEdit"] .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        [id^="modalEdit"] .form-group input,
+        [id^="modalEdit"] .form-group select,
+        [id^="modalEdit"] .form-group textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+        }
+
+        @media (max-width: 600px) {
+            [id^="modalEdit"] .job-form {
+                grid-template-columns: 1fr;
+            }
+
+            [id^="modalEdit"] .form-group.full-width,
+            [id^="modalEdit"] .btn-submit {
+                grid-column: 1;
+            }
+        }
+
     </style>
 </head>
 
@@ -422,7 +618,7 @@ if (
         <div class="menu-title">AKUN</div>
 
         <nav class="menu">
-            <a href="../logout.php">
+            <a href="../../backend/logout.php"">
                 <span class="menu-icon">⇥</span>
                 <span>Logout</span>
             </a>
@@ -457,19 +653,19 @@ if (
             <div class="stat-card">
                 <div class="stat-icon">▤</div>
                 <p>Total Lowongan</p>
-                <h2>8</h2>
+                <h2><?= $total_jobs ?></h2>
             </div>
 
             <div class="stat-card">
                 <div class="stat-icon">✓</div>
                 <p>Lowongan Aktif</p>
-                <h2>5</h2>
+                <h2><?= $active_jobs ?></h2>
             </div>
 
             <div class="stat-card">
                 <div class="stat-icon">◷</div>
                 <p>Lowongan Ditutup</p>
-                <h2>3</h2>
+                <h2><?= $closed_jobs ?></h2>
             </div>
 
         </section>
@@ -484,7 +680,7 @@ if (
                     <p>Daftar posisi pekerjaan yang tersedia di perusahaan.</p>
                 </div>
 
-                <button class="btn" onclick="alert('Hubungkan tombol ini dengan backend tambah lowongan.')">
+                <button class="btn" type="button"  data-bs-toggle="modal"  data-bs-target="#modalTambah">
                     + Tambah Lowongan
                 </button>
 
@@ -502,9 +698,9 @@ if (
 
                 <select id="statusFilter">
                     <option value="">Semua Status</option>
-                    <option value="Aktif">Aktif</option>
-                    <option value="Ditutup">Ditutup</option>
-                    <option value="Draft">Draft</option>
+                    <option value="published">Published</option>
+                    <option value="closed">Closed</option>
+                    <option value="draft">Draft</option>
                 </select>
 
             </div>
@@ -525,55 +721,153 @@ if (
 
                 <tbody>
 
-                    <tr data-status="Aktif">
-                        <td class="job-name">Frontend Developer</td>
-                        <td>Technology</td>
-                        <td>Yogyakarta</td>
-                        <td>Full Time</td>
-                        <td>10/11/2026</td>
-                        <td><span class="status active">Aktif</span></td>
-                        <td><a href="#" class="action" onclick="return showNotice()">Edit</a></td>
-                    </tr>
+                    <?php while ($data = mysqli_fetch_assoc($query_jobs)) : ?>
 
-                    <tr data-status="Aktif">
-                        <td class="job-name">UI/UX Designer</td>
-                        <td>Product</td>
-                        <td>Hybrid</td>
-                        <td>Full Time</td>
-                        <td>12/11/2026</td>
-                        <td><span class="status active">Aktif</span></td>
-                        <td><a href="#" class="action" onclick="return showNotice()">Edit</a></td>
-                    </tr>
+                        <tr data-status="<?= htmlspecialchars($data['status']) ?>>
+                            <td><?= htmlspecialchars($data['title']) ?></td>
 
-                    <tr data-status="Aktif">
-                        <td class="job-name">Backend Developer</td>
-                        <td>Technology</td>
-                        <td>Yogyakarta</td>
-                        <td>Full Time</td>
-                        <td>14/11/2026</td>
-                        <td><span class="status active">Aktif</span></td>
-                        <td><a href="#" class="action" onclick="return showNotice()">Edit</a></td>
-                    </tr>
+                            <td><?= htmlspecialchars($data['category'] ?? '-') ?></td>
 
-                    <tr data-status="Ditutup">
-                        <td class="job-name">Digital Marketing</td>
-                        <td>Marketing</td>
-                        <td>Remote</td>
-                        <td>Contract</td>
-                        <td>01/10/2026</td>
-                        <td><span class="status closed">Ditutup</span></td>
-                        <td><a href="#" class="action" onclick="return showNotice()">Lihat</a></td>
-                    </tr>
+                            <td><?= htmlspecialchars($data['location'] ?? '-') ?></td>
 
-                    <tr data-status="Draft">
-                        <td class="job-name">Data Analyst</td>
-                        <td>Business Intelligence</td>
-                        <td>Yogyakarta</td>
-                        <td>Full Time</td>
-                        <td>-</td>
-                        <td><span class="status draft">Draft</span></td>
-                        <td><a href="#" class="action" onclick="return showNotice()">Edit</a></td>
-                    </tr>
+                            <td><?= htmlspecialchars($data['employment_type']) ?></td>
+
+                            <td><?= htmlspecialchars($data['deadline'] ?? '-') ?></td>
+
+                            <td><?= htmlspecialchars($data['status']) ?></td>
+
+                            <td>
+                                <button
+                                    type="button"
+                                    class="btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalEdit<?= (int) $data['id'] ?>">
+                                    Edit
+                                </button>
+
+                                <form action="../../backend/admin/jobs_delete.php"
+                                    method="POST"
+                                    onsubmit="return confirm('Apakah kamu yakin ingin menghapus lowongan ini?')"
+                                    style="display: inline;">
+
+                                    <input type="hidden" name="id"
+                                        value="<?= (int) $data['id'] ?>">
+
+                                    <button type="submit" class="btn btn-danger">
+                                        Hapus
+                                    </button>
+
+                                </form>
+
+                                <!-- MODAL EDIT -->
+                                <div class="modal fade" id="modalEdit<?= (int) $data['id'] ?>" tabindex="-1">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Edit Lowongan</h5>
+
+                                                <button
+                                                    type="button"
+                                                    class="btn-close"
+                                                    data-bs-dismiss="modal">
+                                                </button>
+                                            </div>
+
+                                            <div class="modal-body">
+
+                                                <form action="../../backend/admin/jobs_edit.php"
+                                                    method="POST"
+                                                    class="job-form">
+
+                                                    <input type="hidden" name="id"
+                                                        value="<?= (int) $data['id'] ?>">
+
+                                                    <div class="form-group">
+                                                        <label>Nama Lowongan</label>
+                                                        <input type="text" name="title"
+                                                            value="<?= htmlspecialchars($data['title']) ?>" required>
+                                                    </div>
+
+                                                    <div class="form-group">
+                                                        <label>Kategori</label>
+                                                        <input type="text" name="category"
+                                                            value="<?= htmlspecialchars($data['category'] ?? '') ?>">
+                                                    </div>
+
+                                                    <div class="form-group">
+                                                        <label>Tipe Pekerjaan</label>
+                                                        <select name="employment_type" required>
+                                                            <option value="full_time" <?= $data['employment_type'] == 'full_time' ? 'selected' : '' ?>>Full Time</option>
+                                                            <option value="part_time" <?= $data['employment_type'] == 'part_time' ? 'selected' : '' ?>>Part Time</option>
+                                                            <option value="internship" <?= $data['employment_type'] == 'internship' ? 'selected' : '' ?>>Internship</option>
+                                                            <option value="contract" <?= $data['employment_type'] == 'contract' ? 'selected' : '' ?>>Contract</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div class="form-group">
+                                                        <label>Lokasi</label>
+                                                        <input type="text" name="location"
+                                                            value="<?= htmlspecialchars($data['location'] ?? '') ?>">
+                                                    </div>
+
+                                                    <div class="form-group full-width">
+                                                        <label>Deskripsi</label>
+                                                        <textarea name="description" required><?= htmlspecialchars($data['description']) ?></textarea>
+                                                    </div>
+
+                                                    <div class="form-group full-width">
+                                                        <label>Persyaratan</label>
+                                                        <textarea name="requirements"><?= htmlspecialchars($data['requirements'] ?? '') ?></textarea>
+                                                    </div>
+
+                                                    <div class="form-group full-width">
+                                                        <label>Tanggung Jawab</label>
+                                                        <textarea name="responsibilities"><?= htmlspecialchars($data['responsibilities'] ?? '') ?></textarea>
+                                                    </div>
+
+                                                    <div class="form-group">
+                                                        <label>Gaji Minimum</label>
+                                                        <input type="number" name="salary_min" min="0"
+                                                            value="<?= htmlspecialchars($data['salary_min'] ?? '') ?>">
+                                                    </div>
+
+                                                    <div class="form-group">
+                                                        <label>Gaji Maksimum</label>
+                                                        <input type="number" name="salary_max" min="0"
+                                                            value="<?= htmlspecialchars($data['salary_max'] ?? '') ?>">
+                                                    </div>
+
+                                                    <div class="form-group">
+                                                        <label>Deadline</label>
+                                                        <input type="date" name="deadline"
+                                                            value="<?= htmlspecialchars($data['deadline'] ?? '') ?>">
+                                                    </div>
+
+                                                    <div class="form-group">
+                                                        <label>Status</label>
+                                                        <select name="status" required>
+                                                            <option value="draft" <?= $data['status'] == 'draft' ? 'selected' : '' ?>>Draft</option>
+                                                            <option value="published" <?= $data['status'] == 'published' ? 'selected' : '' ?>>Published</option>
+                                                            <option value="closed" <?= $data['status'] == 'closed' ? 'selected' : '' ?>>Closed</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <button type="submit" class="btn-submit">
+                                                        Simpan Perubahan
+                                                    </button>
+
+                                                </form>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </td>
+                        </tr>
+
+                    <?php endwhile; ?>
 
                 </tbody>
 
@@ -585,6 +879,100 @@ if (
 
         </section>
 
+         <!-- MODAL TAMBAH LOWONGAN -->
+        <div class="modal fade" id="modalTambah" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+
+                    <div class="modal-header">
+                        <h5>Tambah Lowongan</h5>
+                        <button
+                            type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                        </button>
+                    </div>
+
+                    <div class="modal-body">
+
+                        
+                        <form action="../../backend/admin/jobs_add.php" method="POST" class="job-form">
+
+                            <div class="form-group">
+                                <label>Nama Lowongan</label>
+                                <input type="text" name="title" placeholder="Contoh: Frontend Developer" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Kategori</label>
+                                <input type="text" name="category" placeholder="Contoh: IT">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Tipe Pekerjaan</label>
+                                <select name="employment_type" required>
+                                    <option value="full_time">Full Time</option>
+                                    <option value="part_time">Part Time</option>
+                                    <option value="internship">Internship</option>
+                                    <option value="contract">Contract</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Lokasi</label>
+                                <input type="text" name="location" placeholder="Contoh: Yogyakarta">
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label>Deskripsi</label>
+                                <textarea name="description" placeholder="Jelaskan posisi pekerjaan..." required></textarea>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label>Persyaratan</label>
+                                <textarea name="requirements" placeholder="Tuliskan persyaratan pekerjaan..."></textarea>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label>Tanggung Jawab</label>
+                                <textarea name="responsibilities" placeholder="Tuliskan tanggung jawab pekerjaan..."></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Gaji Minimum</label>
+                                <input type="number" name="salary_min" min="0" placeholder="Contoh: 3000000">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Gaji Maksimum</label>
+                                <input type="number" name="salary_max" min="0" placeholder="Contoh: 5000000">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Deadline</label>
+                                <input type="date" name="deadline">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select name="status" required>
+                                    <option value="draft">Draft</option>
+                                    <option value="published">Published</option>
+                                    <option value="closed">Closed</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn-submit">
+                                Simpan Lowongan
+                            </button>
+
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
 </div>
@@ -634,6 +1022,6 @@ if (
     }
 
 </script>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -1,7 +1,4 @@
-
 <?php
-// Frontend Applications - TalentTrack
-// Data masih dummy, hubungkan dengan backend nantinya.
 
 session_start();
 
@@ -12,7 +9,27 @@ if (
     header("Location: ../login.php");
     exit;
 }
+
+require_once __DIR__ . '/../../backend/admin/applications_data.php';
+
 ?>
+
+<?php if (isset($_GET['pesan'])) : ?>
+
+    <?php if ($_GET['pesan'] == 'berhasil_diubah') : ?>
+        <p>Status lamaran berhasil diperbarui.</p>
+
+    <?php elseif ($_GET['pesan'] == 'gagal_diubah') : ?>
+        <p>Gagal memperbarui status lamaran.</p>
+
+    <?php elseif ($_GET['pesan'] == 'id_tidak_valid') : ?>
+        <p>ID lamaran tidak valid.</p>
+
+    <?php elseif ($_GET['pesan'] == 'status_tidak_valid') : ?>
+        <p>Status lamaran tidak valid.</p>
+    <?php endif; ?>
+
+<?php endif; ?>
 
 <!DOCTYPE html>
 <html lang="id">
@@ -425,6 +442,103 @@ if (
             }
         }
 
+        /* Tombol Update */
+
+        .btn-update {
+            background: #eff6ff;
+            color: #2563eb;
+            border: none;
+            padding: 9px 13px;
+            border-radius: 7px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-update:hover {
+            background: #dbeafe;
+        }
+
+        /* Modal */
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-width: 480px;
+            padding: 28px;
+            border-radius: 12px;
+        }
+
+        .modal-content h3 {
+            font-size: 19px;
+            margin-bottom: 12px;
+        }
+
+        .modal-content p {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 22px;
+        }
+
+        .modal-content label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            margin-top: 15px;
+        }
+
+        .modal-content select,
+        .modal-content textarea {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #e2e8f0;
+            border-radius: 7px;
+            font-family: inherit;
+            font-size: 13px;
+        }
+
+        .modal-content textarea {
+            resize: vertical;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 22px;
+        }
+
+        .btn-cancel,
+        .btn-save {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-cancel {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .btn-save {
+            background: #2563eb;
+            color: white;
+        }
     </style>
 </head>
 
@@ -468,7 +582,7 @@ if (
 
         <nav class="menu">
 
-            <a href="../logout.php">
+            <a href="../../backend/logout.php">
                 <span class="menu-icon">⇥</span>
                 <span>Logout</span>
             </a>
@@ -508,33 +622,30 @@ if (
         <section class="stats">
 
             <div class="stat-card">
-
                 <div class="stat-icon blue">▣</div>
 
-                <p>Total Lamaran</p>
-
-                <h2>156</h2>
-
+                <div class="stat-info">
+                    <p>Total Lamaran</p>
+                    <h2><?= $total_lamaran ?></h2>
+                </div>
             </div>
 
             <div class="stat-card">
-
                 <div class="stat-icon orange">◷</div>
 
-                <p>Menunggu Review</p>
-
-                <h2>42</h2>
-
+                <div class="stat-info">
+                    <p>Menunggu Review</p>
+                    <h2><?= $menunggu_review ?></h2>
+                </div>
             </div>
 
             <div class="stat-card">
-
                 <div class="stat-icon green">✓</div>
 
-                <p>Lamaran Diterima</p>
-
-                <h2>18</h2>
-
+                <div class="stat-info">
+                    <p>Lamaran Diterima</p>
+                    <h2><?= $lamaran_diterima ?></h2>
+                </div>
             </div>
 
         </section>
@@ -600,168 +711,130 @@ if (
 
                 </thead>
 
+                
                 <tbody>
 
-                    <tr data-status="submitted">
+                    <?php while ($data = mysqli_fetch_assoc($query_applications)) : ?>
 
-                        <td class="applicant">
-                            Aditya Pratama
-                        </td>
+                        <tr data-status="<?= htmlspecialchars($data['status']) ?>">
 
-                        <td class="job-name">
-                            Frontend Developer
-                        </td>
+                            <td>
+                                <span class="applicant">
+                                    <?= htmlspecialchars($data['nama_pelamar']) ?>
+                                </span>
+                                <br>
+                                <?= htmlspecialchars($data['email_pelamar']) ?>
+                            </td>
 
-                        <td>21/11/2026</td>
+                            <td>
+                                <span class="job-name">
+                                    <?= htmlspecialchars($data['nama_lowongan']) ?>
+                                </span>
+                            </td>
 
-                        <td>
-                            <span class="status submitted">
-                                Dikirim
-                            </span>
-                        </td>
+                            <td>
+                                <?= date('d/m/Y', strtotime($data['applied_at'])) ?>
+                            </td>
 
-                        <td>
-                            <a href="#" class="action" onclick="return showNotice()">
-                                Detail
-                            </a>
-                        </td>
+                            <td>
+                                <span class="status <?= htmlspecialchars($data['status']) ?>">
+                                    <?= htmlspecialchars($data['status']) ?>
+                                </span>
+                            </td>
 
-                    </tr>
+                            <td>
+                                <button
+                                    type="button"
+                                    class="btn-update"
+                                    onclick="document.getElementById('modal<?= (int) $data['id'] ?>').style.display='flex'">
+                                    Update Status
+                                </button>
+                            </td>
 
-                    <tr data-status="administrative_review">
+                        </tr>
 
-                        <td class="applicant">
-                            Nadia Putri
-                        </td>
-
-                        <td class="job-name">
-                            UI/UX Designer
-                        </td>
-
-                        <td>20/11/2026</td>
-
-                        <td>
-                            <span class="status administrative_review">
-                                Review Administrasi
-                            </span>
-                        </td>
-
-                        <td>
-                            <a href="#" class="action" onclick="return showNotice()">
-                                Detail
-                            </a>
-                        </td>
-
-                    </tr>
-
-                    <tr data-status="interview">
-
-                        <td class="applicant">
-                            Rizky Ramadhan
-                        </td>
-
-                        <td class="job-name">
-                            Backend Developer
-                        </td>
-
-                        <td>19/11/2026</td>
-
-                        <td>
-                            <span class="status interview">
-                                Interview
-                            </span>
-                        </td>
-
-                        <td>
-                            <a href="#" class="action" onclick="return showNotice()">
-                                Detail
-                            </a>
-                        </td>
-
-                    </tr>
-
-                    <tr data-status="accepted">
-
-                        <td class="applicant">
-                            Siti Rahma
-                        </td>
-
-                        <td class="job-name">
-                            Digital Marketing
-                        </td>
-
-                        <td>17/11/2026</td>
-
-                        <td>
-                            <span class="status accepted">
-                                Diterima
-                            </span>
-                        </td>
-
-                        <td>
-                            <a href="#" class="action" onclick="return showNotice()">
-                                Detail
-                            </a>
-                        </td>
-
-                    </tr>
-
-                    <tr data-status="rejected">
-
-                        <td class="applicant">
-                            Fajar Maulana
-                        </td>
-
-                        <td class="job-name">
-                            Frontend Developer
-                        </td>
-
-                        <td>15/11/2026</td>
-
-                        <td>
-                            <span class="status rejected">
-                                Ditolak
-                            </span>
-                        </td>
-
-                        <td>
-                            <a href="#" class="action" onclick="return showNotice()">
-                                Detail
-                            </a>
-                        </td>
-
-                    </tr>
-
-                    <tr data-status="withdrawn">
-
-                        <td class="applicant">
-                            Dewi Anggraini
-                        </td>
-
-                        <td class="job-name">
-                            UI/UX Designer
-                        </td>
-
-                        <td>14/11/2026</td>
-
-                        <td>
-                            <span class="status withdrawn">
-                                Dibatalkan
-                            </span>
-                        </td>
-
-                        <td>
-                            <a href="#" class="action" onclick="return showNotice()">
-                                Detail
-                            </a>
-                        </td>
-
-                    </tr>
+                    <?php endwhile; ?>
 
                 </tbody>
 
+
             </table>
 
+            <!-- Modal Update Status -->
+            <div class="modal" id="modal<?= (int) $data['id'] ?>">
+
+                <div class="modal-content">
+
+                    <h3>Update Status Lamaran</h3>
+
+                    <p>
+                        Pelamar:
+                        <strong><?= htmlspecialchars($data['nama_pelamar']) ?></strong>
+                    </p>
+
+                    <form
+                        action="../../backend/admin/applications_update.php"
+                        method="POST">
+
+                        <input
+                            type="hidden"
+                            name="id"
+                            value="<?= (int) $data['id'] ?>">
+
+                        <label>Status Lamaran</label>
+
+                        <select name="status" required>
+                            <option value="submitted" <?= $data['status'] == 'submitted' ? 'selected' : '' ?>>
+                                Submitted
+                            </option>
+
+                            <option value="administrative_review" <?= $data['status'] == 'administrative_review' ? 'selected' : '' ?>>
+                                Administrative Review
+                            </option>
+
+                            <option value="interview" <?= $data['status'] == 'interview' ? 'selected' : '' ?>>
+                                Interview
+                            </option>
+
+                            <option value="accepted" <?= $data['status'] == 'accepted' ? 'selected' : '' ?>>
+                                Accepted
+                            </option>
+
+                            <option value="rejected" <?= $data['status'] == 'rejected' ? 'selected' : '' ?>>
+                                Rejected
+                            </option>
+
+                            <option value="withdrawn" <?= $data['status'] == 'withdrawn' ? 'selected' : '' ?>>
+                                Withdrawn
+                            </option>
+                        </select>
+
+                        <label>Catatan Admin</label>
+
+                        <textarea
+                            name="admin_note"
+                            rows="4"
+                            placeholder="Masukkan catatan untuk pelamar..."><?= htmlspecialchars($data['admin_note'] ?? '') ?></textarea>
+
+                        <div class="modal-actions">
+
+                            <button type="button"
+                                class="btn-cancel"
+                                onclick="document.getElementById('modal<?= (int) $data['id'] ?>').style.display='none'">
+                                Batal
+                            </button>
+
+                            <button type="submit" class="btn-save">
+                                Simpan Perubahan
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
             <div id="emptyMessage" class="empty" style="display:none">
                 Data lamaran tidak ditemukan.
             </div>
