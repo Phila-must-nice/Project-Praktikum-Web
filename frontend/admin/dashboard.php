@@ -1,5 +1,5 @@
 <?php
-
+require_once __DIR__ . '/../../backend/connection.php';
 session_start();
 
 if (
@@ -9,6 +9,14 @@ if (
     header("Location: ../login.php");
     exit;
 }
+
+$id_admin = $_SESSION['user_id'];
+
+$query_admin = mysqli_query($conn, "
+    SELECT * FROM users WHERE id = '$id_admin'
+");
+
+$data_admin = mysqli_fetch_assoc($query_admin);
 ?>
 
 <!DOCTYPE html>

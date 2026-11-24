@@ -1,0 +1,725 @@
+
+<?php
+// Frontend Applicants - TalentTrack
+// Data masih dummy, hubungkan dengan backend nantinya.
+
+session_start();
+
+if (
+    !isset($_SESSION['user_id']) ||
+    $_SESSION['user_role'] !== 'admin'
+) {
+    header("Location: ../login.php");
+    exit;
+}
+?>
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Pelamar | TalentTrack</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f5f7fb;
+            color: #1e293b;
+        }
+
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+
+        .sidebar {
+            width: 250px;
+            background: #ffffff;
+            border-right: 1px solid #e5e7eb;
+            padding: 28px 20px;
+            position: fixed;
+            height: 100vh;
+        }
+
+        .logo {
+            font-size: 23px;
+            font-weight: 800;
+            color: #2563eb;
+            margin-bottom: 45px;
+            padding-left: 10px;
+        }
+
+        .menu-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+            margin: 25px 10px 12px;
+            letter-spacing: 1px;
+        }
+
+        .menu a {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            padding: 13px 14px;
+            margin-bottom: 7px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+
+        .menu a:hover,
+        .menu a.active {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .menu a.active {
+            font-weight: 700;
+        }
+
+        .menu-icon {
+            width: 20px;
+            text-align: center;
+            font-size: 17px;
+        }
+
+        /* Main */
+
+        .main {
+            margin-left: 250px;
+            width: calc(100% - 250px);
+            padding: 30px 35px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .page-title h1 {
+            font-size: 25px;
+            font-weight: 700;
+            margin-bottom: 7px;
+        }
+
+        .page-title p {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        .admin-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 43px;
+            height: 43px;
+            border-radius: 50%;
+            background: #dbeafe;
+            color: #2563eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 17px;
+        }
+
+        .admin-info h4 {
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .admin-info p {
+            color: #94a3b8;
+            font-size: 11px;
+        }
+
+        /* Statistics */
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 22px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .stat-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 18px;
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .stat-card p {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+        }
+
+        .stat-card h2 {
+            font-size: 27px;
+            font-weight: 700;
+        }
+
+        /* Table */
+
+        .table-container {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .table-header h3 {
+            font-size: 16px;
+        }
+
+        .table-header p {
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        .toolbar {
+            padding: 18px 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .search {
+            flex: 1;
+            max-width: 350px;
+        }
+
+        .search input {
+            width: 100%;
+            padding: 11px 13px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .search input:focus,
+        .toolbar select:focus {
+            border-color: #93c5fd;
+        }
+
+        .toolbar select {
+            padding: 11px 13px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 12px;
+            background: white;
+            outline: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 15px 20px;
+        }
+
+        td {
+            padding: 17px 20px;
+            font-size: 12px;
+            border-top: 1px solid #f1f5f9;
+            color: #64748b;
+        }
+
+        tbody tr:hover {
+            background: #fafcff;
+        }
+
+        .applicant {
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .email {
+            color: #64748b;
+        }
+
+        .action {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .action:hover {
+            text-decoration: underline;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 35px;
+            color: #94a3b8;
+        }
+
+        /* Responsive */
+
+        @media(max-width: 1100px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media(max-width: 768px) {
+            .sidebar {
+                width: 65px;
+                padding: 25px 8px;
+            }
+
+            .logo {
+                font-size: 0;
+                padding: 0;
+                text-align: center;
+            }
+
+            .logo:first-letter {
+                font-size: 22px;
+            }
+
+            .menu-title,
+            .menu a span:last-child {
+                display: none;
+            }
+
+            .menu a {
+                justify-content: center;
+                padding: 14px 5px;
+            }
+
+            .main {
+                margin-left: 65px;
+                width: calc(100% - 65px);
+                padding: 25px 18px;
+            }
+
+            .admin-info {
+                display: none;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+        }
+
+        @media(max-width: 480px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .page-title h1 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- Sidebar -->
+
+    <aside class="sidebar">
+
+        <div class="logo">TalentTrack.</div>
+
+        <div class="menu-title">MENU UTAMA</div>
+
+        <nav class="menu">
+
+            <a href="dashboard.php">
+                <span class="menu-icon">▦</span>
+                <span>Dashboard</span>
+            </a>
+
+            <a href="jobs.php">
+                <span class="menu-icon">▤</span>
+                <span>Lowongan Pekerjaan</span>
+            </a>
+
+            <a href="applicants.php" class="active">
+                <span class="menu-icon">♙</span>
+                <span>Data Pelamar</span>
+            </a>
+
+            <a href="applications.php">
+                <span class="menu-icon">▣</span>
+                <span>Data Lamaran</span>
+            </a>
+
+        </nav>
+
+        <div class="menu-title">AKUN</div>
+
+        <nav class="menu">
+            <a href="../logout.php">
+                <span class="menu-icon">⇥</span>
+                <span>Logout</span>
+            </a>
+        </nav>
+
+    </aside>
+
+    <!-- Main Content -->
+
+    <main class="main">
+
+        <!-- Navbar -->
+
+        <header class="topbar">
+
+            <div class="page-title">
+                <h1>Data Pelamar</h1>
+                <p>Kelola informasi kandidat yang terdaftar di perusahaan.</p>
+            </div>
+
+            <div class="admin-profile">
+
+                <div class="avatar">A</div>
+
+                <div class="admin-info">
+                    <h4>Administrator</h4>
+                    <p>Administrator</p>
+                </div>
+
+            </div>
+
+        </header>
+
+        <!-- Statistics -->
+
+        <section class="stats">
+
+            <div class="stat-card">
+
+                <div class="stat-icon">♙</div>
+
+                <p>Total Pelamar</p>
+
+                <h2>124</h2>
+
+            </div>
+
+            <div class="stat-card">
+
+                <div class="stat-icon">✉</div>
+
+                <p>Pelamar Memiliki Lamaran</p>
+
+                <h2>98</h2>
+
+            </div>
+
+            <div class="stat-card">
+
+                <div class="stat-icon">＋</div>
+
+                <p>Pelamar Terbaru</p>
+
+                <h2>12</h2>
+
+            </div>
+
+        </section>
+
+        <!-- Applicant Table -->
+
+        <section class="table-container">
+
+            <div class="table-header">
+
+                <div>
+                    <h3>Daftar Pelamar</h3>
+                    <p>Informasi akun dan profil kandidat yang terdaftar.</p>
+                </div>
+
+            </div>
+
+            <div class="toolbar">
+
+                <div class="search">
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="Cari nama atau email pelamar..."
+                    >
+                </div>
+
+                <select id="educationFilter">
+                    <option value="">Semua Pendidikan</option>
+                    <option value="S1">S1</option>
+                    <option value="D3">D3</option>
+                    <option value="SMA/SMK">SMA/SMK</option>
+                </select>
+
+            </div>
+
+            <table id="applicantTable">
+
+                <thead>
+                    <tr>
+                        <th>NAMA PELAMAR</th>
+                        <th>EMAIL</th>
+                        <th>NO. TELEPON</th>
+                        <th>PENDIDIKAN</th>
+                        <th>TANGGAL DAFTAR</th>
+                        <th>AKSI</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    <tr data-education="S1">
+
+                        <td class="applicant">
+                            Aditya Pratama
+                        </td>
+
+                        <td class="email">
+                            aditya@example.com
+                        </td>
+
+                        <td>0812-3456-7890</td>
+
+                        <td>S1</td>
+
+                        <td>20/11/2026</td>
+
+                        <td>
+                            <a href="#" class="action" onclick="return showNotice()">
+                                Detail
+                            </a>
+                        </td>
+
+                    </tr>
+
+                    <tr data-education="D3">
+
+                        <td class="applicant">
+                            Nadia Putri
+                        </td>
+
+                        <td class="email">
+                            nadia@example.com
+                        </td>
+
+                        <td>0813-4567-8901</td>
+
+                        <td>D3</td>
+
+                        <td>19/11/2026</td>
+
+                        <td>
+                            <a href="#" class="action" onclick="return showNotice()">
+                                Detail
+                            </a>
+                        </td>
+
+                    </tr>
+
+                    <tr data-education="S1">
+
+                        <td class="applicant">
+                            Rizky Ramadhan
+                        </td>
+
+                        <td class="email">
+                            rizky@example.com
+                        </td>
+
+                        <td>0821-2345-6789</td>
+
+                        <td>S1</td>
+
+                        <td>18/11/2026</td>
+
+                        <td>
+                            <a href="#" class="action" onclick="return showNotice()">
+                                Detail
+                            </a>
+                        </td>
+
+                    </tr>
+
+                    <tr data-education="SMA/SMK">
+
+                        <td class="applicant">
+                            Siti Rahma
+                        </td>
+
+                        <td class="email">
+                            siti@example.com
+                        </td>
+
+                        <td>0857-1234-5678</td>
+
+                        <td>SMA/SMK</td>
+
+                        <td>17/11/2026</td>
+
+                        <td>
+                            <a href="#" class="action" onclick="return showNotice()">
+                                Detail
+                            </a>
+                        </td>
+
+                    </tr>
+
+                    <tr data-education="S1">
+
+                        <td class="applicant">
+                            Fajar Maulana
+                        </td>
+
+                        <td class="email">
+                            fajar@example.com
+                        </td>
+
+                        <td>0819-8765-4321</td>
+
+                        <td>S1</td>
+
+                        <td>15/11/2026</td>
+
+                        <td>
+                            <a href="#" class="action" onclick="return showNotice()">
+                                Detail
+                            </a>
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+            <div id="emptyMessage" class="empty" style="display:none">
+                Data pelamar tidak ditemukan.
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+<script>
+
+    // Pencarian dan filter pendidikan
+
+    const searchInput = document.getElementById('searchInput');
+
+    const educationFilter = document.getElementById('educationFilter');
+
+    const rows = document.querySelectorAll('#applicantTable tbody tr');
+
+    function filterApplicants() {
+
+        let search = searchInput.value.toLowerCase();
+
+        let education = educationFilter.value;
+
+        let visible = 0;
+
+        rows.forEach(function(row) {
+
+            let text = row.innerText.toLowerCase();
+
+            let rowEducation = row.dataset.education;
+
+            let matchSearch = text.includes(search);
+
+            let matchEducation =
+                education === '' || rowEducation === education;
+
+            if (matchSearch && matchEducation) {
+
+                row.style.display = '';
+
+                visible++;
+
+            } else {
+
+                row.style.display = 'none';
+
+            }
+
+        });
+
+        document.getElementById('emptyMessage').style.display =
+            visible === 0 ? 'block' : 'none';
+
+    }
+
+    searchInput.addEventListener('input', filterApplicants);
+
+    educationFilter.addEventListener('change', filterApplicants);
+
+    function showNotice() {
+
+        alert('Tombol detail belum dihubungkan dengan backend.');
+
+        return false;
+
+    }
+
+</script>
+
+</body>
+</html>
