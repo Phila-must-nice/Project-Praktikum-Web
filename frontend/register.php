@@ -322,6 +322,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           with TalentTrack.
         </p>
 
+        <?php if (!empty($pesan)) : ?>
+          <p style="
+              color: #dc2626;
+              background: #fee2e2;
+              padding: 12px;
+              border-radius: 8px;
+              font-size: 14px;
+              margin-bottom: 20px;
+          ">
+              <?= htmlspecialchars($pesan) ?>
+          </p>
+        <?php endif; ?>
+
         <form action="" method="post">
 
           <!-- Full Name -->

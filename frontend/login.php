@@ -137,10 +137,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       padding: 20px 0;
     }
 
-    /* Logo */
-    .auth-logo {
-      margin-bottom: 45px;
-    }
 
     .auth-logo img {
       max-width: 150px;
